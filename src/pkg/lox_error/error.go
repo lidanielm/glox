@@ -1,7 +1,8 @@
-package error
+package lox_error
 
 import (
 	"errors"
+	"fmt"
 )
 
 /*
@@ -23,25 +24,26 @@ type Error struct {
 
 func NewError() *Error {
 	rptr := NewReporter()
-	return &Error(reporter: *rptr)
+	return &Error{reporter: *rptr}
 }
 
 func NewReporter() *ErrorReporter {
-	return &ErrorReporter()
+	return &ErrorReporter{}
 }
 
 func (err *Error) ReportError() {
 	err.reporter.Report(err.line, err.message)
 }
 
-func (rptr *ErrorReporter) Report() {
-	e = errors.New("Error at [line " + line + "]" + where + ": " + message)
+func (rptr *ErrorReporter) Report(line int, message string) {
+	e := errors.New("Error at [line " + fmt.Sprint(line) + "]: " + message)
 	fmt.Println(e)
 }
 
 func (err *Error) New(line int, message string) *Error {
 	err.line = line
 	err.message = message
+	return err
 }
 
 // func (err *Error) throwError() {

@@ -1,136 +1,133 @@
 package scanner
 
 import (
-	"pkg/tokentype",
-	"pkg/error",
-	"errors"
+	"github.com/lidanielm/glox/src/pkg/lox_error"
+	"github.com/lidanielm/glox/src/pkg/token"
 )
 
 type Scanner struct {
 	source string
-	tokens []Token
+	tokens []token.Token
 	start int
 	current int
 	line int
-	err Error
+	err lox_error.Error
 }
 
-func NewScanner(source string, err) *Scanner {
-	tokens := make([]Token)
-	err := NewError()
-	return &Scanner{source: source, tokens: tokens, start: 0, current: 0, line: 1, err: err}
+func NewScanner(source string) *Scanner {
+	tokens := make([]token.Token, 0)
+	err := lox_error.NewError()
+	return &Scanner{source: source, tokens: tokens, start: 0, current: 0, line: 1, err: *err}
 }
 
-func (scan *Scanner) ScanTokens() (tokens []Token, err error) {
-	while (!isEOF()) {
+func (scan *Scanner) ScanTokens() (tokens []token.Token, err error) {
+	for !scan.isEOF() {
 		scan.start = scan.current
-		_ := scanToken()
+		scan.scanToken()
 	}
 
-	scan.tokens = append(scan.tokens, NewToken(EOF, "", null, line))
+	scan.tokens = append(scan.tokens, *token.NewToken(token.EOF, "", nil, scan.line))
 	return scan.tokens, nil
 }
 
-func (scan *Scanner) scanToken() *Error {
+func (scan *Scanner) scanToken() *lox_error.Error {
 	switch c := scan.advance(); c {
 	case '(':
-		scan.addToken(LEFT_PAREN)
+		scan.addToken(token.LEFT_PAREN)
 	case ')':
-		scan.addToken(RIGHT_PAREN)
+		scan.addToken(token.RIGHT_PAREN)
 	case '{':
-		scan.addToken(LEFT_BRACE)
+		scan.addToken(token.LEFT_BRACE)
 	case '}':
-		scan.addToken(RIGHT_BRACE)
+		scan.addToken(token.RIGHT_BRACE)
 	case ',':
-		scan.addToken(COMMA)
+		scan.addToken(token.COMMA)
 	case '.':
-		scan.addToken(DOT)
+		scan.addToken(token.DOT)
 	case '-':
-		scan.addToken(MINUS)
+		scan.addToken(token.MINUS)
 	case '+':
-		scan.addToken(PLUS)
+		scan.addToken(token.PLUS)
 	case ';':
-		scan.addToken(SEMICOLON)
-	case '/':
-		scan.addToken(SLASH)
+		scan.addToken(token.SEMICOLON)
 	case '*':
-		scan.addToken(STAR)
+		scan.addToken(token.STAR)
 	case '!':
 		if scan.matchNext('=') {
-			scan.addToken(BANG_EQUAL)
+			scan.addToken(token.BANG_EQUAL)
 		} else {
-			scan.addToken(BANG)
+			scan.addToken(token.BANG)
 		}
 	case '=':
 		if scan.matchNext('=') {
-			scan.addToken(EQUAL_EQUAL)
+			scan.addToken(token.EQUAL_EQUAL)
 		} else {
-			scan.addToken(EQUAL)
+			scan.addToken(token.EQUAL)
 		}
 	case '>':
 		if scan.matchNext('=') {
-			scan.addToken(GREATER_EQUAL)
+			scan.addToken(token.GREATER_EQUAL)
 		} else {
-			scan.addToken(GREATER)
+			scan.addToken(token.GREATER)
 		}
 	case '<':
 		if scan.matchNext('=') {
-			scan.addToken(LESS_EQUAL)
+			scan.addToken(token.LESS_EQUAL)
 		} else {
-			scan.addToken(LESS)
+			scan.addToken(token.LESS)
 		}
 	case '/':
 		if scan.matchNext('/') {
-			while peek() != '\n' && !isEOF() {
-				advance()
+			for scan.peek() != '\n' && !scan.isEOF() {
+				scan.advance()
 			}
 		} else {
-			scan.addToken(SLASH)
+			scan.addToken(token.SLASH)
 		}
 	case ' ':
 	case '\r':
 	case '\t':
 	case '\n':
-		line++
+		scan.line++
 	default:
-		return err.New(line, "Unexpected character.")
+		return scan.err.New(scan.line, "Unexpected character.")
 	}
 	return nil
 }
 
-func (scan *Scanner) matchNext(byte expected) bool {
+func (scan *Scanner) matchNext(expected byte) bool {
 	if scan.isEOF() {
 		return false
 	}
-	if scan.source[current] != expected {
+	if scan.source[scan.current] != expected {
 		return false
 	}
-	current++
+	scan.current++
 	return true
 }
 
 func (scan *Scanner) peek() byte {
 	// Return current byte
-	return scan.source[current]
+	return scan.source[scan.current]
 }
 
 func (scan *Scanner) advance() byte {
 	// Return current byte and advance pointer
-	c := scan.source[current]
-	current++
+	c := scan.source[scan.current]
+	scan.current++
 	return c
 }
 
-func (scan *Scanner) addToken(typ TokenType) {
-	addToken(typ, nil)
+func (scan *Scanner) addToken(typ token.TokenType) {
+	scan.addTokenLiteral(typ, nil)
 }
 
-func (scan *Scanner) addToken(typ TokenType, literal interface{}) {
-	string text = scan.source[start:current + 1]
-	scan.tokens = append(scan.tokens, NewToken(EOF, text, literal, line))
+func (scan *Scanner) addTokenLiteral(typ token.TokenType, literal interface{}) {
+	text := scan.source[scan.start:scan.current + 1]
+	scan.tokens = append(scan.tokens, *token.NewToken(token.EOF, text, literal, scan.line))
 }
 
 func (scan *Scanner) isEOF() bool {
-	return scan.current >= scan.source.length()
+	return scan.current >= len(scan.source)
 }
 
