@@ -1,3 +1,3 @@
-module src/interpreter
+module github.com/lidanielm/glox
 
 go 1.20

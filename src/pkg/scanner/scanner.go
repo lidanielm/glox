@@ -1,6 +1,8 @@
 package scanner
 
 import (
+	"strconv"
+
 	"github.com/lidanielm/glox/src/pkg/lox_error"
 	"github.com/lidanielm/glox/src/pkg/token"
 )
@@ -20,6 +22,7 @@ func NewScanner(source string) *Scanner {
 	return &Scanner{source: source, tokens: tokens, start: 0, current: 0, line: 1, err: *err}
 }
 
+// TODO: Rewrite with custom error
 func (scan *Scanner) ScanTokens() (tokens []token.Token, err error) {
 	for !scan.isEOF() {
 		scan.start = scan.current
@@ -89,10 +92,84 @@ func (scan *Scanner) scanToken() *lox_error.Error {
 	case '\t':
 	case '\n':
 		scan.line++
+	case '"':
+		scan.addString()
+	case 'o':
+		if scan.matchNext('r') {
+			scan.addToken(token.OR)
+		}
 	default:
-		return scan.err.New(scan.line, "Unexpected character.")
+		if isDigit(c) {
+			scan.addNumber()
+		} else if isAlpha(c) {
+			scan.addIdentifier()
+		} else {
+			return scan.err.New(scan.line, "Unexpected character.")
+		}
 	}
 	return nil
+}
+
+func (scan *Scanner) addString() {
+	if scan.isEOF() {
+		scan.err.New(scan.line, "Unterminated string.")
+		return
+	}
+
+	str := make([]byte, 0)
+	for !scan.isEOF() && scan.peek() != '"' {
+		if scan.peek() == '\n' {
+			scan.line++
+		}
+
+		str = append(str, scan.advance())
+	}
+
+	// Last '"'
+	scan.advance()
+
+	scan.addTokenLiteral(token.STRING, string(str))
+}
+
+func (scan *Scanner) addNumber() {
+	numStr := make([]byte, 0)
+	hasDec := false
+	for !scan.isEOF() {
+		if scan.peek() == '.' && isDigit(scan.peekTwice()) && !hasDec {
+			hasDec = true
+			scan.advance()
+		} else if isDigit(scan.peek()) {
+			numStr = append(numStr, scan.advance())
+		} else {
+			break
+		}
+	}
+
+	if numStr[len(numStr) - 1] == '.' {
+		scan.err.New(scan.line, "Invalid number (trailing decimal point).")
+		return
+	}
+
+	num, err := strconv.ParseFloat(string(numStr), 64)
+	if err != nil {
+		scan.err.New(scan.line, "Invalid number.")
+		return
+	}
+	scan.addTokenLiteral(token.NUMBER, num)
+}
+
+func (scan *Scanner) addIdentifier() {
+	idStr := make([]byte, 0)
+
+	for isAlphaNumeric(scan.peek()) {
+		idStr = append(idStr, scan.advance())
+	}
+
+	if typ, ok := token.Keywords[string(idStr)]; ok {
+		scan.addToken(typ)
+	} else {
+		scan.addToken(token.IDENTIFIER)
+	}
 }
 
 func (scan *Scanner) matchNext(expected byte) bool {
@@ -109,6 +186,14 @@ func (scan *Scanner) matchNext(expected byte) bool {
 func (scan *Scanner) peek() byte {
 	// Return current byte
 	return scan.source[scan.current]
+}
+
+func (scan *Scanner) peekTwice() byte {
+	if scan.current + 1 >= len(scan.source) {
+		return '\u0000'
+	}
+
+	return scan.source[scan.current + 1]	
 }
 
 func (scan *Scanner) advance() byte {
@@ -131,3 +216,14 @@ func (scan *Scanner) isEOF() bool {
 	return scan.current >= len(scan.source)
 }
 
+func isDigit(c byte) bool {
+	return int(c) >= 48 && int(c) <= 57
+}
+
+func isAlpha(c byte) bool {
+	return (int(c) >= 65 && int(c) <= 90) || (int(c) >= 97 && int(c) <= 122) || c == '_'
+}
+
+func isAlphaNumeric(c byte) bool {
+	return isDigit(c) && isAlpha(c)
+}

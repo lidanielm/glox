@@ -8,36 +8,29 @@ import (
 	"github.com/lidanielm/glox/src/pkg/scanner"
 )
 
-type Interpreter struct {
-	hadError bool
-}
-
-func (iptr *Interpreter) main() {
-	if len(os.Args) > 1 {
+func main() {
+	fmt.Println(os.Args)
+	if len(os.Args) > 2 {
 		fmt.Println("Usage: golox [script]")
 		os.Exit(64)
-	} else if len(os.Args) == 1 {
-		iptr.runFile(os.Args[1])
+	} else if len(os.Args) == 2 {
+		runFile(os.Args[1])
 	} else {
-		iptr.runPrompt()
+		runPrompt()
 	}
 }
 
-func (iptr *Interpreter) runFile(path string) error {
+func runFile(path string) error {
 	// Wrapper for run if given file path
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}
-	iptr.run(string(data))
-
-	if iptr.hadError {
-		os.Exit(64)
-	}
+	run(string(data))
 	return nil
 }
 
-func (iptr *Interpreter) runPrompt() error {
+func runPrompt() error {
 	// Wrapper for run in repl environment
 	reader := bufio.NewReader(os.Stdin)
 
@@ -47,12 +40,12 @@ func (iptr *Interpreter) runPrompt() error {
 		if line == nil {
 			break
 		}
-		iptr.run(string(line))
+		run(string(line))
 	}
 	return nil
 }
 
-func (iptr *Interpreter) run(source string) error {
+func run(source string) error {
 	// Run interpreter
 	scan := scanner.NewScanner(source)
 	tokens, err := scan.ScanTokens()
