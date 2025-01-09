@@ -1,10 +1,11 @@
 package main
 
-import 
-(
-	"fmt",
-	"bufio",
+import (
+	"bufio"
+	"fmt"
 	"os"
+
+	"github.com/lidanielm/glox/src/pkg/scanner"
 )
 
 type Interpreter struct {
@@ -16,21 +17,23 @@ func (iptr *Interpreter) main() {
 		fmt.Println("Usage: golox [script]")
 		os.Exit(64)
 	} else if len(os.Args) == 1 {
-		runFile(os.Args[1])
+		iptr.runFile(os.Args[1])
 	} else {
-		runPrompt()
+		iptr.runPrompt()
 	}
 }
 
-func (iptr *Interpreter) runFile(string path) error {
+func (iptr *Interpreter) runFile(path string) error {
 	// Wrapper for run if given file path
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}
-	run(string(data))
+	iptr.run(string(data))
 
-	if (hadError) os.Exit(64)
+	if iptr.hadError {
+		os.Exit(64)
+	}
 	return nil
 }
 
@@ -40,21 +43,28 @@ func (iptr *Interpreter) runPrompt() error {
 
 	for {
 		fmt.Print("> ")
-		line, _ := reader.ReadLine()
+		line, _, _ := reader.ReadLine()
 		if line == nil {
 			break
 		}
-		run(line)
+		iptr.run(string(line))
 	}
 	return nil
 }
 
-func (iptr *Interpreter) run(string source) error {
+func (iptr *Interpreter) run(source string) error {
 	// Run interpreter
-	scanner := Scanner(source)
-	tokens := scanner.scanTokens()
+	scan := scanner.NewScanner(source)
+	tokens, err := scan.ScanTokens()
+
+	// TODO: Handle custom error
+	if err != nil {
+		return err
+	}
 
 	for _, token := range tokens {
 		fmt.Println(token)
 	}
+
+	return nil
 }
