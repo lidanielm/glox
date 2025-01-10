@@ -81,7 +81,7 @@ func (scan *Scanner) scanToken() *lox_error.Error {
 		}
 	case '/':
 		if scan.matchNext('/') {
-			for scan.peek() != '\n' && !scan.isEOF() {
+			for !scan.isEOF() && scan.peek() != '\n' {
 				scan.advance()
 			}
 		} else {
@@ -116,56 +116,62 @@ func (scan *Scanner) addString() {
 		return
 	}
 
-	str := make([]byte, 0)
 	for !scan.isEOF() && scan.peek() != '"' {
 		if scan.peek() == '\n' {
 			scan.line++
 		}
 
-		str = append(str, scan.advance())
+		scan.advance()
 	}
 
 	// Last '"'
 	scan.advance()
 
-	scan.addTokenLiteral(token.STRING, string(str))
+    str := scan.source[scan.start + 1:scan.current - 1]
+	scan.addTokenLiteral(token.STRING, str)
 }
 
 func (scan *Scanner) addNumber() {
-	numStr := make([]byte, 0)
+    // TODO: Support negative numbers
+    // Scan until number terminates
 	hasDec := false
 	for !scan.isEOF() {
 		if scan.peek() == '.' && isDigit(scan.peekTwice()) && !hasDec {
 			hasDec = true
 			scan.advance()
 		} else if isDigit(scan.peek()) {
-			numStr = append(numStr, scan.advance())
+            scan.advance()
 		} else {
 			break
 		}
 	}
 
+    // Get string-formatted number from source
+    numStr := scan.source[scan.start:scan.current]
+
+    // Validate number
 	if numStr[len(numStr) - 1] == '.' {
 		scan.err.New(scan.line, "Invalid number (trailing decimal point).")
 		return
 	}
 
-	num, err := strconv.ParseFloat(string(numStr), 64)
+	num, err := strconv.ParseFloat(numStr, 64)
 	if err != nil {
 		scan.err.New(scan.line, "Invalid number.")
 		return
 	}
+
+    // Add token
 	scan.addTokenLiteral(token.NUMBER, num)
 }
 
 func (scan *Scanner) addIdentifier() {
-	idStr := make([]byte, 0)
-
 	for isAlphaNumeric(scan.peek()) {
-		idStr = append(idStr, scan.advance())
+		scan.advance()
 	}
 
-	if typ, ok := token.Keywords[string(idStr)]; ok {
+    identifier := scan.source[scan.start:scan.current]
+	if typ, ok := token.Keywords[identifier]; ok {
 		scan.addToken(typ)
 	} else {
 		scan.addToken(token.IDENTIFIER)
@@ -208,7 +214,7 @@ func (scan *Scanner) addToken(typ token.TokenType) {
 }
 
 func (scan *Scanner) addTokenLiteral(typ token.TokenType, literal interface{}) {
-	text := scan.source[scan.start:scan.current + 1]
+	text := scan.source[scan.start:scan.current]
 	scan.tokens = append(scan.tokens, *token.NewToken(token.EOF, text, literal, scan.line))
 }
 

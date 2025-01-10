@@ -56,7 +56,7 @@ func run(source string) error {
 	}
 
 	for _, token := range tokens {
-		fmt.Println(token)
+		fmt.Println(token.ToString())
 	}
 
 	return nil

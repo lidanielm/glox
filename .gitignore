@@ -1,0 +1,5 @@
+# Ignore Makefile
+Makefile
+
+# Ignore go.mod file
+go.mod

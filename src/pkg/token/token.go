@@ -13,6 +13,6 @@ func NewToken(typ TokenType, lexeme string, literal interface{}, line int) *Toke
 	return &Token{typ: typ, lexeme: lexeme, literal: literal, line: line}
 }
 
-func (token *Token) toString() string {
-	return string(rune(token.typ)) + " " + token.lexeme + " " + fmt.Sprintf("%v", token.literal)
+func (token *Token) ToString() string {
+	return "Type: " + string(byte(token.typ)) + ", Lexeme: " + token.lexeme + ", Literal: " + fmt.Sprintf("%v", token.literal)
 }
