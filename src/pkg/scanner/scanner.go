@@ -215,7 +215,7 @@ func (scan *Scanner) addToken(typ token.TokenType) {
 
 func (scan *Scanner) addTokenLiteral(typ token.TokenType, literal interface{}) {
 	text := scan.source[scan.start:scan.current]
-	scan.tokens = append(scan.tokens, *token.NewToken(token.EOF, text, literal, scan.line))
+	scan.tokens = append(scan.tokens, *token.NewToken(typ, text, literal, scan.line))
 }
 
 func (scan *Scanner) isEOF() bool {

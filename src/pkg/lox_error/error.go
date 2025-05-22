@@ -8,6 +8,7 @@ import (
 /*
 TODO
 Potential improvement: coalescing errors into single error that outputs at end of program execution
+edit: this probably isn't an improvement, we'd want to know when an error occurs
 */
 
 type Reporter interface {
