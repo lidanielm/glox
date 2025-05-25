@@ -3,3 +3,5 @@ Makefile
 
 # Ignore go.mod file
 go.mod
+
+*.vim

@@ -7,8 +7,8 @@ import (
 )
 
 func main() {
-	outputDir := "src/pkg/internal/tool/out"
-	baseName := "Expr"
+	outputDir := "src/pkg/internal/ast"
+	baseName := "expr"
 	types := []string{"Binary : left Expr, operator Token, right Expr", "Grouping : expression Expr", "Literal : value Object", "Unary : operator Token, right Expr"}
 	err := defineAst(outputDir, baseName, types)
 	if err != nil {
@@ -24,7 +24,8 @@ func defineAst(outputDir string, baseName string, types []string) (err error) {
 	}
 	defer file.Close()
 
-	fmt.Fprintf(file, "package " + outputDir + "\n\n")
+	dirs := strings.Split(outputDir, "/")
+	fmt.Fprintf(file, "package " + dirs[len(dirs) - 1] + "\n\n")
 	fmt.Fprintf(file, "type " + baseName + " interface {\n")
 	fmt.Fprintf(file, "\tAccept(visitor Visitor[any]) any\n")
 	fmt.Fprintf(file, "}\n\n")
