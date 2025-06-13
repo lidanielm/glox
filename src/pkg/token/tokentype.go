@@ -50,6 +50,7 @@ const (
 	WHILE
   
 	EOF
+	ERROR
 )
 
 var Keywords = map[string]TokenType{

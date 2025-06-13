@@ -1,50 +1,29 @@
 package lox_error
 
 import (
-	"errors"
 	"fmt"
+	"os"
+
+	"github.com/lidanielm/glox/src/pkg/token"
 )
 
-/*
-TODO
-Potential improvement: coalescing errors into single error that outputs at end of program execution
-edit: this probably isn't an improvement, we'd want to know when an error occurs
-*/
-
-type Reporter interface {
-	Report(line int, message string)
-}
-
-type ErrorReporter struct {}
-
 type Error struct {
-	line int
+	token token.Token
 	message string
-	reporter ErrorReporter
 }
 
-func NewError() *Error {
-	rptr := NewReporter()
-	return &Error{reporter: *rptr}
-}
-
-func NewReporter() *ErrorReporter {
-	return &ErrorReporter{}
-}
-
-func (err *Error) ReportError() {
-	err.reporter.Report(err.line, err.message)
-}
-
-func (rptr *ErrorReporter) Report(line int, message string) {
-	e := errors.New("Error at [line " + fmt.Sprint(line) + "]: " + message)
-	fmt.Println(e)
-}
-
-func (err *Error) New(line int, message string) *Error {
-	err.line = line
-	err.message = message
+func NewError(tok token.Token, msg string) *Error {
+	err := &Error{token: tok, message: msg}
+	if tok.Type == token.EOF {
+		Report(tok.Line, " at end: " + msg)
+	} else {
+		Report(tok.Line, " at '" + tok.Lexeme + "': " + msg)
+	}
 	return err
+}
+
+func Report(line int, message string) {
+	fmt.Fprintf(os.Stderr, "Error at [line %d]: %s", line, message)
 }
 
 // func (err *Error) throwError() {

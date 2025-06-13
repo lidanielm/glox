@@ -6,6 +6,8 @@ import (
 	"os"
 
 	"github.com/lidanielm/glox/src/pkg/scanner"
+	"github.com/lidanielm/glox/src/pkg/lox_error"
+	"github.com/lidanielm/glox/src/pkg/parser"
 )
 
 func main() {
@@ -45,19 +47,20 @@ func runPrompt() error {
 	return nil
 }
 
-func run(source string) error {
+func run(source string) *lox_error.Error {
 	// Run interpreter
 	scan := scanner.NewScanner(source)
 	tokens, err := scan.ScanTokens()
 
-	// TODO: Handle custom error
+	parser := parser.NewParser(tokens)
+	expr, err := parser.Parse()
+
+	// Stop if there was a syntax error
 	if err != nil {
 		return err
 	}
 
-	for _, token := range tokens {
-		fmt.Println(token.ToString())
-	}
-
+	fmt.Println(expr)
+	
 	return nil
 }

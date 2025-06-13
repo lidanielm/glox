@@ -13,20 +13,20 @@ type Scanner struct {
 	start int
 	current int
 	line int
-	err lox_error.Error
 }
 
 func NewScanner(source string) *Scanner {
 	tokens := make([]token.Token, 0)
-	err := lox_error.NewError()
-	return &Scanner{source: source, tokens: tokens, start: 0, current: 0, line: 1, err: *err}
+	return &Scanner{source: source, tokens: tokens, start: 0, current: 0, line: 1}
 }
 
-// TODO: Rewrite with custom error
-func (scan *Scanner) ScanTokens() (tokens []token.Token, err error) {
+func (scan *Scanner) ScanTokens() ([]token.Token, *lox_error.Error) {
 	for !scan.isEOF() {
 		scan.start = scan.current
-		scan.scanToken()
+		err := scan.scanToken()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	scan.tokens = append(scan.tokens, *token.NewToken(token.EOF, "", nil, scan.line))
@@ -104,16 +104,15 @@ func (scan *Scanner) scanToken() *lox_error.Error {
 		} else if isAlpha(c) {
 			scan.addIdentifier()
 		} else {
-			return scan.err.New(scan.line, "Unexpected character.")
+			return lox_error.NewError(*token.NewToken(token.ERROR, string(c), nil, scan.line), "Unexpected character.")
 		}
 	}
 	return nil
 }
 
-func (scan *Scanner) addString() {
+func (scan *Scanner) addString() *lox_error.Error {
 	if scan.isEOF() {
-		scan.err.New(scan.line, "Unterminated string.")
-		return
+		return lox_error.NewError(*token.NewToken(token.ERROR, "", nil, scan.line), "Unterminated string.")
 	}
 
 	for !scan.isEOF() && scan.peek() != '"' {
@@ -129,9 +128,10 @@ func (scan *Scanner) addString() {
 
     str := scan.source[scan.start + 1:scan.current - 1]
 	scan.addTokenLiteral(token.STRING, str)
+	return nil
 }
 
-func (scan *Scanner) addNumber() {
+func (scan *Scanner) addNumber() *lox_error.Error {
     // TODO: Support negative numbers
     // Scan until number terminates
 	hasDec := false
@@ -151,18 +151,17 @@ func (scan *Scanner) addNumber() {
 
     // Validate number
 	if numStr[len(numStr) - 1] == '.' {
-		scan.err.New(scan.line, "Invalid number (trailing decimal point).")
-		return
+		return lox_error.NewError(*token.NewToken(token.ERROR, "", nil, scan.line), "Invalid number (trailing decimal point).")
 	}
 
 	num, err := strconv.ParseFloat(numStr, 64)
 	if err != nil {
-		scan.err.New(scan.line, "Invalid number.")
-		return
+		return lox_error.NewError(*token.NewToken(token.ERROR, "", nil, scan.line), "Invalid number.")
 	}
 
     // Add token
 	scan.addTokenLiteral(token.NUMBER, num)
+	return nil
 }
 
 func (scan *Scanner) addIdentifier() {

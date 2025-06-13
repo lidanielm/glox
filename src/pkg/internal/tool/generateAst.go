@@ -8,8 +8,8 @@ import (
 
 func main() {
 	outputDir := "src/pkg/internal/ast"
-	baseName := "expr"
-	types := []string{"Binary : left Expr, operator Token, right Expr", "Grouping : expression Expr", "Literal : value Object", "Unary : operator Token, right Expr"}
+	baseName := "Expr"
+	types := []string{"Binary : Left Expr, Operator token.Token, Right Expr", "Grouping : Expression Expr", "Literal : Value interface{}", "Unary : Operator token.Token, Right Expr"}
 	err := defineAst(outputDir, baseName, types)
 	if err != nil {
 		panic(err)
@@ -26,9 +26,14 @@ func defineAst(outputDir string, baseName string, types []string) (err error) {
 
 	dirs := strings.Split(outputDir, "/")
 	fmt.Fprintf(file, "package " + dirs[len(dirs) - 1] + "\n\n")
+
+	fmt.Fprintf(file, "import (\n\t\"github.com/lidanielm/glox/src/pkg/token\"\n)\n\n")
+
 	fmt.Fprintf(file, "type " + baseName + " interface {\n")
 	fmt.Fprintf(file, "\tAccept(visitor Visitor[any]) any\n")
 	fmt.Fprintf(file, "}\n\n")
+
+	defineVisitor(file, baseName, types)
 
 	// Define classes
 	for _, typ := range types {
@@ -58,8 +63,8 @@ func defineType(file *os.File, baseName string, className string, classType stri
 	fmt.Fprintf(file, "func New%v(%v) *%v {\n", className, classType, className)		
 	fmt.Fprintf(file, "\treturn &%v{", className)
 	for index, field := range fields {
-		name, ftype := strings.Split(field, " ")[0], strings.Split(field, " ")[1]
-		fmt.Fprintf(file, "%v: %v", name, ftype)
+		name, _ := strings.Split(field, " ")[0], strings.Split(field, " ")[1]
+		fmt.Fprintf(file, "%v: %v", name, name)
 		if index < len(fields) - 1 {
 			fmt.Fprint(file, ", ")
 		}
@@ -69,7 +74,7 @@ func defineType(file *os.File, baseName string, className string, classType stri
 
 	// Define visitor method
 	fmt.Fprintf(file, "func (%c %v) Accept(visitor Visitor[any]) any {\n", strings.ToLower(className)[0], className)
-	fmt.Fprintf(file, "\treturn visitor.visit%v%v(%c)\n", className, baseName, strings.ToLower(className)[0])
+	fmt.Fprintf(file, "\treturn visitor.Visit%v%v(%c)\n", className, baseName, strings.ToLower(className)[0])
 	fmt.Fprintf(file, "}\n\n")
 }
 
