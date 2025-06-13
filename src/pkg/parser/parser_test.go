@@ -6,6 +6,7 @@ import (
 
 	"github.com/lidanielm/glox/src/pkg/token"
 	"github.com/lidanielm/glox/src/pkg/internal/ast"
+	"github.com/lidanielm/glox/src/pkg/tool"
 )
 
 func TestAstPrinter(t *testing.T) {
@@ -20,7 +21,7 @@ func TestAstPrinter(t *testing.T) {
 		),
 	)
 
-	printer := ast.NewAstPrinter()
+	printer := tool.NewAstPrinter()
 	result := printer.Print(expr)
 
 	fmt.Println(result)

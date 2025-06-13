@@ -1,6 +1,8 @@
 package parser
 
 import (
+	"fmt"
+
 	"github.com/lidanielm/glox/src/pkg/token"
 	"github.com/lidanielm/glox/src/pkg/internal/ast"
 	"github.com/lidanielm/glox/src/pkg/lox_error"
@@ -154,7 +156,7 @@ func (p *Parser) primary() (ast.Expr, *lox_error.Error) {
 	}
 
 	if p.match(token.NUMBER, token.STRING) {
-		return ast.NewLiteral(p.peek().Literal), nil
+		return ast.NewLiteral(p.previous().Literal), nil
 	}
 
 	if p.match(token.LEFT_PAREN) {

@@ -1,4 +1,4 @@
-package main
+package tool
 
 import (
 	"fmt"
@@ -38,7 +38,7 @@ func (a AstPrinter) parenthesize(name string, exprs ...ast.Expr) string {
 		str += " "
 		str += expr.Accept(a).(string)
 	}
-	str += " "
+	str += ")"
 
 	return str
 }

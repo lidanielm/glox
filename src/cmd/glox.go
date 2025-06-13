@@ -8,6 +8,7 @@ import (
 	"github.com/lidanielm/glox/src/pkg/scanner"
 	"github.com/lidanielm/glox/src/pkg/lox_error"
 	"github.com/lidanielm/glox/src/pkg/parser"
+	"github.com/lidanielm/glox/src/pkg/tool"
 )
 
 func main() {
@@ -60,7 +61,7 @@ func run(source string) *lox_error.Error {
 		return err
 	}
 
-	fmt.Println(expr)
+	fmt.Println(tool.NewAstPrinter().Print(expr))
 	
 	return nil
 }
