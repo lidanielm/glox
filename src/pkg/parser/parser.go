@@ -1,8 +1,6 @@
 package parser
 
 import (
-	"fmt"
-
 	"github.com/lidanielm/glox/src/pkg/token"
 	"github.com/lidanielm/glox/src/pkg/internal/ast"
 	"github.com/lidanielm/glox/src/pkg/lox_error"
@@ -64,6 +62,20 @@ func (p *Parser) equality() (ast.Expr, *lox_error.Error) {
 
 	return expr, nil
 }
+
+
+// Evaluate ternary operation
+// func (p *Parser) ternary() (ast.Expr, *lox_error.Error) {
+// 	expr, err := p.comparison()
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	for p.match(token.INTERRO) {
+// 		operator := p.comparison()
+		
+// 	}
+// }
 
 
 // Evaluate comparison operation recursively

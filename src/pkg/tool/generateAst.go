@@ -6,17 +6,7 @@ import (
 	"os"
 )
 
-func main() {
-	outputDir := "src/pkg/internal/ast"
-	baseName := "Expr"
-	types := []string{"Binary : Left Expr, Operator token.Token, Right Expr", "Grouping : Expression Expr", "Literal : Value interface{}", "Unary : Operator token.Token, Right Expr"}
-	err := defineAst(outputDir, baseName, types)
-	if err != nil {
-		panic(err)
-	}
-}
-
-func defineAst(outputDir string, baseName string, types []string) (err error) {
+func DefineAst(outputDir string, baseName string, types []string) error {
 	path := outputDir + "/" + baseName + ".go"
 	file, err := os.Create(path)
 	if err != nil {

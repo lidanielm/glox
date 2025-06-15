@@ -13,26 +13,28 @@ const (
 	MINUS
 	PLUS
 	SEMICOLON
+	COLON
 	SLASH
-	STAR // 10
+	STAR // 11
 
 	// One or two character tokens
-	BANG // 11
+	BANG // 12
 	BANG_EQUAL
 	EQUAL
 	EQUAL_EQUAL
 	GREATER
 	GREATER_EQUAL
 	LESS
-	LESS_EQUAL // 18
+	LESS_EQUAL
+	INTERRO // 20
   
 	// Literals
-	IDENTIFIER // 19
+	IDENTIFIER // 21
 	STRING
-	NUMBER // 21
+	NUMBER // 23
   
 	// Keywords
-	AND // 22
+	AND // 24
 	CLASS
 	ELSE
 	FALSE
@@ -47,9 +49,9 @@ const (
 	THIS
 	TRUE
 	VAR
-	WHILE // 37
+	WHILE // 39
   
-	EOF // 38
+	EOF // 40
 	ERROR
 )
 

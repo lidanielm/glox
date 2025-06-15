@@ -32,6 +32,10 @@ func (a AstPrinter) VisitUnaryExpr(expr ast.Unary) any {
 	return a.parenthesize(expr.Operator.Lexeme, expr.Right)
 }
 
+func (a AstPrinter) VisitTernaryExpr(expr ast.Ternary) any {
+	return a.parenthesize(expr.Operator1.Lexeme, expr.Operator2.Lexeme, expr.Condition, expr.Left, expr.Right)
+}
+
 func (a AstPrinter) parenthesize(name string, exprs ...ast.Expr) string {
 	str := "(" + name
 	for _, expr := range exprs {
