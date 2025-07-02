@@ -13,36 +13,44 @@ func NewAstPrinter() *AstPrinter {
 }
 
 func (a AstPrinter) Print(expr ast.Expr) string {
-	return expr.Accept(a).(string)
+	s, err := expr.Accept(a)
+	if err != nil {
+		return "Unable to parse string"
+	}
+	return s.(string)
 }
 
-func (a AstPrinter) VisitBinaryExpr(expr ast.Binary) any {
+func (a AstPrinter) VisitBinaryExpr(expr ast.Binary) (any, error) {
 	return a.parenthesize(expr.Operator.Lexeme, expr.Left, expr.Right)
 }
 
-func (a AstPrinter) VisitGroupingExpr(expr ast.Grouping) any {
+func (a AstPrinter) VisitGroupingExpr(expr ast.Grouping) (any, error) {
 	return a.parenthesize("group", expr.Expression)
 }
 
-func (a AstPrinter) VisitLiteralExpr(expr ast.Literal) any {
-	return fmt.Sprintf("%v", expr.Value)
+func (a AstPrinter) VisitLiteralExpr(expr ast.Literal) (any, error) {
+	return fmt.Sprintf("%v", expr.Value), nil
 }
 
-func (a AstPrinter) VisitUnaryExpr(expr ast.Unary) any {
+func (a AstPrinter) VisitUnaryExpr(expr ast.Unary) (any, error) {
 	return a.parenthesize(expr.Operator.Lexeme, expr.Right)
 }
 
-func (a AstPrinter) VisitTernaryExpr(expr ast.Ternary) any {
-	return a.parenthesize(expr.Operator1.Lexeme, expr.Operator2.Lexeme, expr.Condition, expr.Left, expr.Right)
+func (a AstPrinter) VisitTernaryExpr(expr ast.Ternary) (any, error) {
+	return a.parenthesize(expr.Operator1.Lexeme, expr.Condition, expr.Left, expr.Right)
 }
 
-func (a AstPrinter) parenthesize(name string, exprs ...ast.Expr) string {
+func (a AstPrinter) parenthesize(name string, exprs ...ast.Expr) (string, error) {
 	str := "(" + name
 	for _, expr := range exprs {
 		str += " "
-		str += expr.Accept(a).(string)
+		s, err := expr.Accept(a)
+		if err != nil {
+			return "", err
+		}
+		str += s.(string)
 	}
 	str += ")"
 
-	return str
+	return str, nil
 }

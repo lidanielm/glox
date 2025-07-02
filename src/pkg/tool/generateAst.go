@@ -2,8 +2,8 @@ package tool
 
 import (
 	"fmt"
-	"strings"
 	"os"
+	"strings"
 )
 
 func DefineAst(outputDir string, baseName string, types []string) error {

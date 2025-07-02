@@ -20,7 +20,7 @@ func NewScanner(source string) *Scanner {
 	return &Scanner{source: source, tokens: tokens, start: 0, current: 0, line: 1}
 }
 
-func (scan *Scanner) ScanTokens() ([]token.Token, *lox_error.Error) {
+func (scan *Scanner) ScanTokens() ([]token.Token, error) {
 	for !scan.isEOF() {
 		scan.start = scan.current
 		err := scan.scanToken()
@@ -33,7 +33,7 @@ func (scan *Scanner) ScanTokens() ([]token.Token, *lox_error.Error) {
 	return scan.tokens, nil
 }
 
-func (scan *Scanner) scanToken() *lox_error.Error {
+func (scan *Scanner) scanToken() error {
 	switch c := scan.advance(); c {
 	case '(':
 		scan.addToken(token.LEFT_PAREN)
@@ -110,7 +110,7 @@ func (scan *Scanner) scanToken() *lox_error.Error {
 	return nil
 }
 
-func (scan *Scanner) addString() *lox_error.Error {
+func (scan *Scanner) addString() error {
 	if scan.isEOF() {
 		return lox_error.NewError(*token.NewToken(token.ERROR, "", nil, scan.line), "Unterminated string.")
 	}
@@ -131,7 +131,7 @@ func (scan *Scanner) addString() *lox_error.Error {
 	return nil
 }
 
-func (scan *Scanner) addNumber() *lox_error.Error {
+func (scan *Scanner) addNumber() error {
     // TODO: Support negative numbers
     // Scan until number terminates
 	hasDec := false

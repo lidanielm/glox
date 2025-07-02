@@ -2,36 +2,42 @@ package lox_error
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/lidanielm/glox/src/pkg/token"
 )
 
-type Error struct {
-	token token.Token
-	message string
+type LoxError struct {
+	Token token.Token
+	Message string
 }
 
-func NewError(tok token.Token, msg string) *Error {
-	err := &Error{token: tok, message: msg}
+func NewError(tok token.Token, msg string) *LoxError {
+	err := &LoxError{Token: tok}
 	if tok.Type == token.EOF {
-		Report(tok.Line, " at end: " + msg)
+		err.Message = " at end: " + msg
+		err.Error()
 	} else {
-		Report(tok.Line, " at '" + tok.Lexeme + "': " + msg)
+		err.Message = " at '" + tok.Lexeme + "': " + msg
+		err.Error()
 	}
 	return err
 }
 
-func Report(line int, message string) {
-	fmt.Fprintf(os.Stderr, "Error at [line %d]: %s", line, message)
+func (e *LoxError) Error() string {
+	return fmt.Sprintf("Error at [line %d]: %s", e.Token.Line, e.Message)
 }
 
-// func (err *Error) throwError() {
-// 	// Throw error
-// 	reportError(line, "", message)
-// }
+type RuntimeError struct {
+	Token token.Token
+	Message string
+}
 
-// func (iptr *Interpreter) reportError(int line, string where, string message) {
-// 	fmt.Println("Error at [line " + line + "]" + where + ": " + message)
-// 	iptr.hadError = true
-// }
+func NewRuntimeError(tok token.Token, msg string) *RuntimeError {
+	err := &RuntimeError{Token: tok, Message: msg}
+	err.Error()
+	return err
+}
+
+func (e *RuntimeError) Error() string {
+	return fmt.Sprintf("Error at [line %d]: %s", e.Token.Line, e.Message)
+}

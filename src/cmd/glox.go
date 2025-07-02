@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/lidanielm/glox/src/pkg/scanner"
+	"github.com/lidanielm/glox/src/pkg/interpreter"
 	"github.com/lidanielm/glox/src/pkg/lox_error"
 	"github.com/lidanielm/glox/src/pkg/parser"
+	"github.com/lidanielm/glox/src/pkg/scanner"
 	"github.com/lidanielm/glox/src/pkg/tool"
 )
 
@@ -43,12 +44,21 @@ func runPrompt() error {
 		if line == nil {
 			break
 		}
-		run(string(line))
+		err := run(string(line))
+		if err != nil {
+			if _, ok := err.(*lox_error.RuntimeError); ok {
+				os.Exit(70)
+			} else if _, ok := err.(*lox_error.LoxError); ok {
+				os.Exit(65)
+			} else {
+				os.Exit(1)
+			}
+		}
 	}
 	return nil
 }
 
-func run(source string) *lox_error.Error {
+func run(source string) error {
 	// Run interpreter
 	scan := scanner.NewScanner(source)
 	tokens, err := scan.ScanTokens()
@@ -60,6 +70,9 @@ func run(source string) *lox_error.Error {
 	if err != nil {
 		return err
 	}
+
+	interpreter := interpreter.NewInterpreter()
+	interpreter.Interpret(expr)
 
 	fmt.Println(tool.NewAstPrinter().Print(expr))
 	

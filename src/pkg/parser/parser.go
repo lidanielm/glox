@@ -1,9 +1,9 @@
 package parser
 
 import (
-	"github.com/lidanielm/glox/src/pkg/token"
 	"github.com/lidanielm/glox/src/pkg/internal/ast"
 	"github.com/lidanielm/glox/src/pkg/lox_error"
+	"github.com/lidanielm/glox/src/pkg/token"
 )
 
 /** DECLARING TYPE DEFINITIONS AND CONSTRUCTORS **/
@@ -24,7 +24,7 @@ type ParseError struct {
 }
 
 
-func (p *Parser) Parse() (ast.Expr, *lox_error.Error) {
+func (p *Parser) Parse() (ast.Expr, error) {
 	expr, err := p.expression()
 	if err != nil {
 		return nil, err
@@ -35,8 +35,8 @@ func (p *Parser) Parse() (ast.Expr, *lox_error.Error) {
 
 
 // Evaluate the expression recursively
-func (p *Parser) expression() (ast.Expr, *lox_error.Error) {
-	expr, err := p.equality()
+func (p *Parser) expression() (ast.Expr, error) {
+	expr, err := p.ternary()
 	if err != nil {
 		return nil, err
 	}
@@ -44,8 +44,35 @@ func (p *Parser) expression() (ast.Expr, *lox_error.Error) {
 }
 
 
+// Evaluate ternary operation
+func (p *Parser) ternary() (ast.Expr, error) {
+	expr, err := p.equality()
+	if err != nil {
+		return nil, err
+	}
+
+	for p.match(token.INTERRO) {
+		operator1 := p.previous()
+		left, err := p.equality()
+		if err != nil {
+			return nil, err
+		}
+
+		operator2 := p.previous()
+		right, err := p.equality()
+		if err != nil {
+			return nil, err
+		}
+
+		expr = ast.NewTernary(expr, operator1, left, operator2, right)
+	}
+
+	return expr, nil
+}
+
+
 // Evaluate equality operation recursively
-func (p *Parser) equality() (ast.Expr, *lox_error.Error) {
+func (p *Parser) equality() (ast.Expr, error) {
 	expr, err := p.comparison()
 	if err != nil {
 		return nil, err
@@ -64,22 +91,8 @@ func (p *Parser) equality() (ast.Expr, *lox_error.Error) {
 }
 
 
-// Evaluate ternary operation
-// func (p *Parser) ternary() (ast.Expr, *lox_error.Error) {
-// 	expr, err := p.comparison()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	for p.match(token.INTERRO) {
-// 		operator := p.comparison()
-		
-// 	}
-// }
-
-
 // Evaluate comparison operation recursively
-func (p *Parser) comparison() (ast.Expr, *lox_error.Error) {
+func (p *Parser) comparison() (ast.Expr, error) {
 	expr, err := p.term()
 	if err != nil {
 		return nil, err
@@ -98,7 +111,7 @@ func (p *Parser) comparison() (ast.Expr, *lox_error.Error) {
 }
 
 // Evaluate an addition/subtraction operation recursively
-func (p *Parser) term() (ast.Expr, *lox_error.Error) {
+func (p *Parser) term() (ast.Expr, error) {
 	expr, err := p.factor()
 	if err != nil {
 		return nil, err
@@ -117,7 +130,7 @@ func (p *Parser) term() (ast.Expr, *lox_error.Error) {
 }
 
 // Evaluate a multiplication/division operation recursively
-func (p *Parser) factor() (ast.Expr, *lox_error.Error) {
+func (p *Parser) factor() (ast.Expr, error) {
 	expr, err := p.unary()
 	if err != nil {
 		return nil, err
@@ -136,7 +149,7 @@ func (p *Parser) factor() (ast.Expr, *lox_error.Error) {
 }
 
 // Evaluate a unary operation recursively
-func (p *Parser) unary() (ast.Expr, *lox_error.Error) {
+func (p *Parser) unary() (ast.Expr, error) {
 	if p.match(token.BANG, token.MINUS) {
 		operator := p.previous()
 		right, err := p.unary()
@@ -154,7 +167,7 @@ func (p *Parser) unary() (ast.Expr, *lox_error.Error) {
 	return expr, nil
 }
 
-func (p *Parser) primary() (ast.Expr, *lox_error.Error) {
+func (p *Parser) primary() (ast.Expr, error) {
 	if p.match(token.FALSE) {
 		return ast.NewLiteral(false), nil
 	}
