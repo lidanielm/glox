@@ -59,6 +59,7 @@ func (ip Interpreter) VisitBinaryExpr(binary ast.Binary) (any, error) {
     left, lerr := ip.evaluate(binary.Left)
     right, rerr := ip.evaluate(binary.Right)
 
+	// Evaluate both subexpressions first but report the first error
     if lerr != nil || rerr != nil {
         return nil, lerr
     }
@@ -78,6 +79,10 @@ func (ip Interpreter) VisitBinaryExpr(binary ast.Binary) (any, error) {
         if !isNumber(left, right) {
             return nil, lox_error.NewRuntimeError(binary.Operator, "Operands must be numbers.")
         }
+
+		if right.(float64) == 0 {
+			return nil, lox_error.NewRuntimeError(binary.Operator, "Invalid divison by zero.")
+		}
         return left.(float64) / right.(float64), nil
     case token.PLUS:
         if isNumber(left, right) {
