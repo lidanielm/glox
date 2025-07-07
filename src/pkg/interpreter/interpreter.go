@@ -5,6 +5,7 @@ import (
 	"reflect"
 
 	"github.com/lidanielm/glox/src/pkg/internal/ast"
+	"github.com/lidanielm/glox/src/pkg/internal/stmt"
 	"github.com/lidanielm/glox/src/pkg/lox_error"
 	"github.com/lidanielm/glox/src/pkg/token"
 )
@@ -15,13 +16,16 @@ func NewInterpreter() *Interpreter {
 	return &Interpreter{}
 }
 
-func (ip Interpreter) Interpret(expr ast.Expr) error {
-    value, err := ip.evaluate(expr)
-    if err != nil {
-        return err
-    }
-    fmt.Println(stringify(value))
-    return nil
+func (ip Interpreter) Interpret(stmts []stmt.Stmt) error {
+    for _, stmt := range stmts {
+		err := ip.execute(stmt)
+		if err != nil {
+			ip.runtimeError(err)
+			return err
+		}
+	}
+
+	return nil
 }
 
 /** VISIT METHODS */
@@ -154,6 +158,34 @@ func (ip Interpreter) evaluate(expr ast.Expr) (any, error) {
 	return expr.Accept(ip)
 }
 
+
+/** STATEMENT METHODS */
+func (ip Interpreter) VisitExpressionStmt(stmt stmt.Expression) error {
+	_, err := ip.evaluate(stmt.Expr)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+
+func (ip Interpreter) VisitPrintStmt(stmt stmt.Print) error {
+	val, err := ip.evaluate(stmt.Expr)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(stringify(val))
+	return nil
+}
+
+
+func (ip Interpreter) execute(stmt stmt.Stmt) error {
+	return stmt.Accept(ip)
+}
+
+
 /** HELPER METHODS */
 func (ip Interpreter) isTruthy(expr any) bool {
 	if expr == nil {
@@ -176,6 +208,10 @@ func (ip Interpreter) isEqual(left any, right any) bool {
     }
 
     return left == right
+}
+
+func (ip Interpreter) runtimeError(err error) {
+	fmt.Println(err.Error())
 }
 
 func isNumber(vs ...any) bool {

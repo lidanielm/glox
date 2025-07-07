@@ -9,7 +9,6 @@ import (
 	"github.com/lidanielm/glox/src/pkg/lox_error"
 	"github.com/lidanielm/glox/src/pkg/parser"
 	"github.com/lidanielm/glox/src/pkg/scanner"
-	"github.com/lidanielm/glox/src/pkg/tool"
 )
 
 func main() {
@@ -63,8 +62,12 @@ func run(source string) error {
 	scan := scanner.NewScanner(source)
 	tokens, err := scan.ScanTokens()
 
+	if err != nil {
+		return err
+	}
+
 	parser := parser.NewParser(tokens)
-	expr, err := parser.Parse()
+	statements, err := parser.Parse()
 
 	// Stop if there was a syntax error
 	if err != nil {
@@ -72,9 +75,7 @@ func run(source string) error {
 	}
 
 	interpreter := interpreter.NewInterpreter()
-	interpreter.Interpret(expr)
-
-	fmt.Println(tool.NewAstPrinter().Print(expr))
+	interpreter.Interpret(statements)
 	
 	return nil
 }

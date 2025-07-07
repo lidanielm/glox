@@ -97,7 +97,9 @@ func (scan *Scanner) scanToken() error {
 	case 'o':
 		if scan.matchNext('r') {
 			scan.addToken(token.OR)
+			break
 		}
+		fallthrough
 	default:
 		if isDigit(c) {
 			scan.addNumber()
@@ -165,7 +167,7 @@ func (scan *Scanner) addNumber() error {
 }
 
 func (scan *Scanner) addIdentifier() {
-	for isAlphaNumeric(scan.peek()) {
+	for !scan.isEOF() && isAlphaNumeric(scan.peek()) {
 		scan.advance()
 	}
 
@@ -230,5 +232,5 @@ func isAlpha(c byte) bool {
 }
 
 func isAlphaNumeric(c byte) bool {
-	return isDigit(c) && isAlpha(c)
+	return isDigit(c) || isAlpha(c)
 }

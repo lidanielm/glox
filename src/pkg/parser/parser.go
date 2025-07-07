@@ -2,6 +2,7 @@ package parser
 
 import (
 	"github.com/lidanielm/glox/src/pkg/internal/ast"
+	"github.com/lidanielm/glox/src/pkg/internal/stmt"
 	"github.com/lidanielm/glox/src/pkg/lox_error"
 	"github.com/lidanielm/glox/src/pkg/token"
 )
@@ -12,25 +13,55 @@ type Parser struct {
 	curr int
 }
 
-
 // Constructor for Parser
 func NewParser(tokens []token.Token) *Parser {
 	return &Parser{tokens: tokens, curr: 0}
 }
 
 
-type ParseError struct {
-	message string
+func (p *Parser) Parse() ([]stmt.Stmt, error) {
+	statements := []stmt.Stmt{}
+	for !p.isAtEnd() {
+		statement, err := p.statement()
+		if err != nil {
+			return nil, err
+		}
+		statements = append(statements, statement)
+	}
+	
+	return statements, nil
 }
 
 
-func (p *Parser) Parse() (ast.Expr, error) {
+func (p *Parser) statement() (stmt.Stmt, error) {
+	if p.match(token.PRINT) {
+		return p.printStatement()
+	}
+
+	return p.expressionStatement()
+}
+
+
+func (p *Parser) printStatement() (stmt.Stmt, error) {
+	// Evaluate argument
+	value, err := p.expression()
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if statement is terminated by semicolon
+	p.consume(token.SEMICOLON, "Expect ';' after value.")
+	return stmt.NewPrint(value), nil
+}
+
+func (p *Parser) expressionStatement() (stmt.Stmt, error) {
 	expr, err := p.expression()
 	if err != nil {
 		return nil, err
 	}
-	
-	return expr, nil
+
+	p.consume(token.SEMICOLON, "Expect ';' after expression.")
+	return stmt.NewExpression(expr), nil
 }
 
 
@@ -239,6 +270,15 @@ func (p *Parser) match(tokenTypes ...token.TokenType) bool {
 	}
 
 	return false
+}
+
+// Consume the current token
+func (p *Parser) consume(tokenType token.TokenType, message string) (token.Token, error) {
+	if p.check(tokenType) {
+		return p.advance(), nil
+	}
+
+	return token.Token{}, lox_error.NewParseError(p.peek(), message)
 }
 
 // Check if the current token is of the given type
