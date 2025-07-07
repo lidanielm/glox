@@ -4,16 +4,20 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/lidanielm/glox/src/pkg/env"
 	"github.com/lidanielm/glox/src/pkg/internal/ast"
 	"github.com/lidanielm/glox/src/pkg/internal/stmt"
 	"github.com/lidanielm/glox/src/pkg/lox_error"
 	"github.com/lidanielm/glox/src/pkg/token"
 )
 
-type Interpreter struct {}
+type Interpreter struct {
+	env env.Env
+}
 
 func NewInterpreter() *Interpreter {
-	return &Interpreter{}
+	env := *env.NewEnv()
+	return &Interpreter{env: env}
 }
 
 func (ip Interpreter) Interpret(stmts []stmt.Stmt) error {
@@ -154,6 +158,11 @@ func (ip Interpreter) VisitTernaryExpr(ternary ast.Ternary) (any, error) {
 }
 
 
+func (ip Interpreter) VisitVariableExpr(expr ast.Variable) (any, error) {
+	return ip.env.Get(expr.Name)
+}
+
+
 func (ip Interpreter) evaluate(expr ast.Expr) (any, error) {
 	return expr.Accept(ip)
 }
@@ -177,6 +186,21 @@ func (ip Interpreter) VisitPrintStmt(stmt stmt.Print) error {
 	}
 
 	fmt.Println(stringify(val))
+	return nil
+}
+
+
+func (ip Interpreter) VisitVarStmt(stmt stmt.Var) error {
+	if stmt.Initializer != nil {
+		value, err := ip.evaluate(stmt.Initializer)
+		if err != nil {
+			return err
+		}
+		ip.env.Define(stmt.Name.Lexeme, value)
+	} else {
+		ip.env.Define(stmt.Name.Lexeme, nil)
+	}
+
 	return nil
 }
 

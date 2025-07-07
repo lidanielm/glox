@@ -22,14 +22,51 @@ func NewParser(tokens []token.Token) *Parser {
 func (p *Parser) Parse() ([]stmt.Stmt, error) {
 	statements := []stmt.Stmt{}
 	for !p.isAtEnd() {
-		statement, err := p.statement()
+		declaration, err := p.declaration()
 		if err != nil {
 			return nil, err
 		}
-		statements = append(statements, statement)
+		statements = append(statements, declaration)
 	}
 	
 	return statements, nil
+}
+
+
+func (p *Parser) declaration() (stmt.Stmt, error) {
+	if p.match(token.VAR) {
+		stmt, err := p.varDeclaration()
+		if err != nil {
+			p.synchronize()
+			return nil, err
+		}
+
+		return stmt, nil
+	}
+
+	return p.statement()
+}
+
+
+func (p *Parser) varDeclaration() (stmt.Stmt, error) {
+	name, err := p.consume(token.IDENTIFIER, "Expect variable name.")
+	if err != nil {
+		return nil, err
+	}
+
+	var initializer ast.Expr
+	if p.match(token.EQUAL) {
+		initializer, err = p.expression()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	_, err = p.consume(token.SEMICOLON, "Expect ';' after variable declaration.")
+	if err != nil {
+		return nil, err
+	}
+	return stmt.NewVar(name, initializer), nil
 }
 
 
@@ -213,6 +250,10 @@ func (p *Parser) primary() (ast.Expr, error) {
 
 	if p.match(token.NUMBER, token.STRING) {
 		return ast.NewLiteral(p.previous().Literal), nil
+	} 
+
+	if p.match(token.IDENTIFIER) {
+		return ast.NewVariable(p.previous()), nil
 	}
 
 	if p.match(token.LEFT_PAREN) {

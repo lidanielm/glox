@@ -2,6 +2,7 @@ package stmt
 
 import (
 	"github.com/lidanielm/glox/src/pkg/internal/ast"
+	"github.com/lidanielm/glox/src/pkg/token"
 )
 
 type Stmt interface {
@@ -11,6 +12,7 @@ type Stmt interface {
 type Visitor[R any] interface {
 	VisitExpressionStmt(stmt Expression) error
 	VisitPrintStmt(stmt Print) error
+	VisitVarStmt(stmt Var) error
 }
 
 type Expression struct {
@@ -37,3 +39,15 @@ func (p Print) Accept(visitor Visitor[any]) error {
 	return visitor.VisitPrintStmt(p)
 }
 
+type Var struct {
+	Name token.Token
+	Initializer ast.Expr
+}
+
+func NewVar(name token.Token, initializer ast.Expr) *Var {
+	return &Var{Name: name, Initializer: initializer}
+}
+
+func (v Var) Accept(visitor Visitor[any]) error {
+	return visitor.VisitVarStmt(v)
+}

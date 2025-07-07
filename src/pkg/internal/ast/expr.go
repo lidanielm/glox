@@ -14,6 +14,7 @@ type Visitor[R any] interface {
 	VisitLiteralExpr(expr Literal) (R, error)
 	VisitUnaryExpr(expr Unary) (R, error)
 	VisitTernaryExpr(expr Ternary) (R, error)
+	VisitVariableExpr(expr Variable) (R, error)
 }
 
 type Binary struct {
@@ -43,10 +44,10 @@ func (g Grouping) Accept(visitor Visitor[any]) (any, error) {
 }
 
 type Literal struct {
-	Value any
+	Value interface{}
 }
 
-func NewLiteral(Value any) *Literal {
+func NewLiteral(Value interface{}) *Literal {
 	return &Literal{Value: Value}
 }
 
@@ -81,5 +82,17 @@ func NewTernary(Condition Expr, Operator1 token.Token, Left Expr, Operator2 toke
 
 func (t Ternary) Accept(visitor Visitor[any]) (any, error) {
 	return visitor.VisitTernaryExpr(t)
+}
+
+type Variable struct {
+	Name token.Token
+}
+
+func NewVariable(name token.Token) *Variable {
+	return &Variable{Name: name}
+}
+
+func (v Variable) Accept(visitor Visitor[any]) (any, error) {
+	return visitor.VisitVariableExpr(v)
 }
 
