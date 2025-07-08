@@ -15,6 +15,7 @@ type Visitor[R any] interface {
 	VisitUnaryExpr(expr Unary) (R, error)
 	VisitTernaryExpr(expr Ternary) (R, error)
 	VisitVariableExpr(expr Variable) (R, error)
+	VisitAssignExpr(expr Assign) (R, error)
 }
 
 type Binary struct {
@@ -96,3 +97,15 @@ func (v Variable) Accept(visitor Visitor[any]) (any, error) {
 	return visitor.VisitVariableExpr(v)
 }
 
+type Assign struct {
+	Name token.Token
+	Value Expr
+}
+
+func NewAssign(name token.Token, value Expr) *Assign {
+	return &Assign{Name: name, Value: value}
+}
+
+func (a Assign) Accept(visitor Visitor[any]) (any, error) {
+	return visitor.VisitAssignExpr(a)
+}

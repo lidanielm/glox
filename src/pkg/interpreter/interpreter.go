@@ -163,6 +163,17 @@ func (ip Interpreter) VisitVariableExpr(expr ast.Variable) (any, error) {
 }
 
 
+func (ip Interpreter) VisitAssignExpr(expr ast.Assign) (any, error) {
+	value, err := ip.evaluate(expr.Value)
+	if err != nil {
+		return nil, err
+	}
+
+	ip.env.Assign(expr.Name, value)
+	return value, nil
+}
+
+
 func (ip Interpreter) evaluate(expr ast.Expr) (any, error) {
 	return expr.Accept(ip)
 }

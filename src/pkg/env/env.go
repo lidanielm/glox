@@ -26,3 +26,13 @@ func (e Env) Get(name token.Token) (any, error) {
 		return nil, lox_error.NewRuntimeError(name, "Undefined variable '" + name.Lexeme + "'.")
 	}
 }
+
+func (e Env) Assign(name token.Token, value any) error {
+	_, exists := e.values[name.Lexeme]
+	if exists {
+		e.values[name.Lexeme] = value
+		return nil
+	}
+
+	return lox_error.NewRuntimeError(name, "Undefined variable '" + name.Lexeme + "'.")
+}

@@ -104,10 +104,35 @@ func (p *Parser) expressionStatement() (stmt.Stmt, error) {
 
 // Evaluate the expression recursively
 func (p *Parser) expression() (ast.Expr, error) {
+	expr, err := p.assignment()
+	if err != nil {
+		return nil, err
+	}
+	return expr, nil
+}
+
+
+func (p *Parser) assignment() (ast.Expr, error) {
 	expr, err := p.ternary()
 	if err != nil {
 		return nil, err
 	}
+
+	if p.match(token.EQUAL) {
+		equals := p.previous()
+		value, err := p.assignment()
+		if err != nil {
+			return nil, err
+		}
+
+		if variable, ok := expr.(ast.Variable); ok {
+			name := variable.Name
+			return ast.NewAssign(name, value), nil
+		}
+
+		return nil, lox_error.NewRuntimeError(equals, "Invalid assignment target.")
+	}
+
 	return expr, nil
 }
 
