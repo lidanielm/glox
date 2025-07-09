@@ -25,11 +25,12 @@ func main() {
 
 func runFile(path string) error {
 	// Wrapper for run if given file path
+	interpreter := interpreter.NewInterpreter()
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}
-	run(string(data))
+	run(string(data), interpreter)
 	return nil
 }
 
@@ -37,13 +38,15 @@ func runPrompt() error {
 	// Wrapper for run in repl environment
 	reader := bufio.NewReader(os.Stdin)
 
+	interpreter := interpreter.NewInterpreter()
+
 	for {
 		fmt.Print("> ")
 		line, _, _ := reader.ReadLine()
 		if line == nil {
 			break
 		}
-		err := run(string(line))
+		err := run(string(line), interpreter)
 		if err != nil {
 			if _, ok := err.(*lox_error.RuntimeError); ok {
 				os.Exit(70)
@@ -57,7 +60,7 @@ func runPrompt() error {
 	return nil
 }
 
-func run(source string) error {
+func run(source string, interpreter *interpreter.Interpreter) error {
 	// Run interpreter
 	scan := scanner.NewScanner(source)
 	tokens, err := scan.ScanTokens()
@@ -73,8 +76,6 @@ func run(source string) error {
 	if err != nil {
 		return err
 	}
-
-	interpreter := interpreter.NewInterpreter()
 	interpreter.Interpret(statements)
 	
 	return nil

@@ -20,7 +20,7 @@ func NewInterpreter() *Interpreter {
 	return &Interpreter{env: env}
 }
 
-func (ip Interpreter) Interpret(stmts []stmt.Stmt) error {
+func (ip *Interpreter) Interpret(stmts []stmt.Stmt) error {
     for _, stmt := range stmts {
 		err := ip.execute(stmt)
 		if err != nil {
@@ -33,15 +33,15 @@ func (ip Interpreter) Interpret(stmts []stmt.Stmt) error {
 }
 
 /** VISIT METHODS */
-func (ip Interpreter) VisitLiteralExpr(literal ast.Literal) (any, error) {
+func (ip *Interpreter) VisitLiteralExpr(literal ast.Literal) (any, error) {
 	return literal.Value, nil
 }
 
-func (ip Interpreter) VisitGroupingExpr(grouping ast.Grouping) (any, error) {
+func (ip *Interpreter) VisitGroupingExpr(grouping ast.Grouping) (any, error) {
 	return ip.evaluate(grouping.Expression)
 }
 
-func (ip Interpreter) VisitUnaryExpr(unary ast.Unary) (any, error) {
+func (ip *Interpreter) VisitUnaryExpr(unary ast.Unary) (any, error) {
 	right, err := ip.evaluate(unary.Right)
     if err != nil {
         return nil, err
@@ -63,7 +63,7 @@ func (ip Interpreter) VisitUnaryExpr(unary ast.Unary) (any, error) {
 	}
 }
 
-func (ip Interpreter) VisitBinaryExpr(binary ast.Binary) (any, error) {
+func (ip *Interpreter) VisitBinaryExpr(binary ast.Binary) (any, error) {
     left, lerr := ip.evaluate(binary.Left)
     right, rerr := ip.evaluate(binary.Right)
 
@@ -131,7 +131,7 @@ func (ip Interpreter) VisitBinaryExpr(binary ast.Binary) (any, error) {
     }
 }
 
-func (ip Interpreter) VisitTernaryExpr(ternary ast.Ternary) (any, error) {
+func (ip *Interpreter) VisitTernaryExpr(ternary ast.Ternary) (any, error) {
     condition, cerr := ip.evaluate(ternary.Condition)
     left, lerr := ip.evaluate(ternary.Left)
     right, rerr := ip.evaluate(ternary.Right)
@@ -158,12 +158,12 @@ func (ip Interpreter) VisitTernaryExpr(ternary ast.Ternary) (any, error) {
 }
 
 
-func (ip Interpreter) VisitVariableExpr(expr ast.Variable) (any, error) {
+func (ip *Interpreter) VisitVariableExpr(expr ast.Variable) (any, error) {
 	return ip.env.Get(expr.Name)
 }
 
 
-func (ip Interpreter) VisitAssignExpr(expr ast.Assign) (any, error) {
+func (ip *Interpreter) VisitAssignExpr(expr ast.Assign) (any, error) {
 	value, err := ip.evaluate(expr.Value)
 	if err != nil {
 		return nil, err
@@ -174,13 +174,13 @@ func (ip Interpreter) VisitAssignExpr(expr ast.Assign) (any, error) {
 }
 
 
-func (ip Interpreter) evaluate(expr ast.Expr) (any, error) {
+func (ip *Interpreter) evaluate(expr ast.Expr) (any, error) {
 	return expr.Accept(ip)
 }
 
 
 /** STATEMENT METHODS */
-func (ip Interpreter) VisitExpressionStmt(stmt stmt.Expression) error {
+func (ip *Interpreter) VisitExpressionStmt(stmt stmt.Expression) error {
 	_, err := ip.evaluate(stmt.Expr)
 	if err != nil {
 		return err
@@ -190,7 +190,7 @@ func (ip Interpreter) VisitExpressionStmt(stmt stmt.Expression) error {
 }
 
 
-func (ip Interpreter) VisitPrintStmt(stmt stmt.Print) error {
+func (ip *Interpreter) VisitPrintStmt(stmt stmt.Print) error {
 	val, err := ip.evaluate(stmt.Expr)
 	if err != nil {
 		return err
@@ -201,7 +201,7 @@ func (ip Interpreter) VisitPrintStmt(stmt stmt.Print) error {
 }
 
 
-func (ip Interpreter) VisitVarStmt(stmt stmt.Var) error {
+func (ip *Interpreter) VisitVarStmt(stmt stmt.Var) error {
 	if stmt.Initializer != nil {
 		value, err := ip.evaluate(stmt.Initializer)
 		if err != nil {
@@ -216,18 +216,18 @@ func (ip Interpreter) VisitVarStmt(stmt stmt.Var) error {
 }
 
 
-func (ip Interpreter) VisitBlockStmt(stmt stmt.Block) error {
+func (ip *Interpreter) VisitBlockStmt(stmt stmt.Block) error {
 	newEnv := env.NewEnv().WithParent(ip.env)
 	return ip.executeBlock(stmt.Statements, newEnv)
 }
 
 
-func (ip Interpreter) execute(stmt stmt.Stmt) error {
+func (ip *Interpreter) execute(stmt stmt.Stmt) error {
 	return stmt.Accept(ip)
 }
 
 
-func (ip Interpreter) executeBlock(statements []stmt.Stmt, env *env.Env) error {
+func (ip *Interpreter) executeBlock(statements []stmt.Stmt, env *env.Env) error {
 	previous := ip.env
 	ip.env = env
 	for _, stmt := range statements {
@@ -244,7 +244,7 @@ func (ip Interpreter) executeBlock(statements []stmt.Stmt, env *env.Env) error {
 
 
 /** HELPER METHODS */
-func (ip Interpreter) isTruthy(expr any) bool {
+func (ip *Interpreter) isTruthy(expr any) bool {
 	if expr == nil {
 		return false
 	}
@@ -255,7 +255,7 @@ func (ip Interpreter) isTruthy(expr any) bool {
 	return true
 }
 
-func (ip Interpreter) isEqual(left any, right any) bool {
+func (ip *Interpreter) isEqual(left any, right any) bool {
     if left == nil && right == nil {
         return true
     }
@@ -267,7 +267,7 @@ func (ip Interpreter) isEqual(left any, right any) bool {
     return left == right
 }
 
-func (ip Interpreter) runtimeError(err error) {
+func (ip *Interpreter) runtimeError(err error) {
 	fmt.Println(err.Error())
 }
 
