@@ -41,7 +41,11 @@ func (a AstPrinter) VisitTernaryExpr(expr ast.Ternary) (any, error) {
 }
 
 func (a AstPrinter) VisitVariableExpr(expr ast.Variable) (any, error) {
-	return a.parenthesize("var", expr)
+	return a.parenthesize("var "+expr.Name.Lexeme)
+}
+
+func (a AstPrinter) VisitAssignExpr(expr ast.Assign) (any, error) {
+	return a.parenthesize("var"+expr.Name.Lexeme+" = ", expr.Value)
 }
 
 func (a AstPrinter) parenthesize(name string, exprs ...ast.Expr) (string, error) {

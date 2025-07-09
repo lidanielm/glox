@@ -73,6 +73,8 @@ func (p *Parser) varDeclaration() (stmt.Stmt, error) {
 func (p *Parser) statement() (stmt.Stmt, error) {
 	if p.match(token.PRINT) {
 		return p.printStatement()
+	} else if p.match(token.LEFT_BRACE) {
+		return stmt.NewBlock(), nil
 	}
 
 	return p.expressionStatement()
@@ -109,6 +111,21 @@ func (p *Parser) expression() (ast.Expr, error) {
 		return nil, err
 	}
 	return expr, nil
+}
+
+func (p *Parser) block() ([]stmt.Stmt, error) {
+	statements := []stmt.Stmt{}
+
+	for !p.check(token.RIGHT_BRACE) && !p.isAtEnd() {
+		decl, err := p.declaration()
+		if err != nil {
+			return nil, err
+		}
+		statements = append(statements, decl)
+	}
+
+	p.consume(token.RIGHT_BRACE, "Expect '}' after block.")
+	return statements, nil
 }
 
 

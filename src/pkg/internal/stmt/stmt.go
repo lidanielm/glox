@@ -13,6 +13,7 @@ type Visitor[R any] interface {
 	VisitExpressionStmt(stmt Expression) error
 	VisitPrintStmt(stmt Print) error
 	VisitVarStmt(stmt Var) error
+	VisitBlockStmt(stmt Block) error
 }
 
 type Expression struct {
@@ -50,4 +51,16 @@ func NewVar(name token.Token, initializer ast.Expr) *Var {
 
 func (v Var) Accept(visitor Visitor[any]) error {
 	return visitor.VisitVarStmt(v)
+}
+
+type Block struct {
+	Statements []Stmt
+}
+
+func NewBlock() *Block {
+	return &Block{Statements: []Stmt{}}
+}
+
+func (b Block) Accept(visitor Visitor[any]) error {
+	return visitor.VisitBlockStmt(b)
 }

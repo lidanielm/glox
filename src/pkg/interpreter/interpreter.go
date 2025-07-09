@@ -12,11 +12,11 @@ import (
 )
 
 type Interpreter struct {
-	env env.Env
+	env *env.Env
 }
 
 func NewInterpreter() *Interpreter {
-	env := *env.NewEnv()
+	env := env.NewEnv()
 	return &Interpreter{env: env}
 }
 
@@ -216,8 +216,30 @@ func (ip Interpreter) VisitVarStmt(stmt stmt.Var) error {
 }
 
 
+func (ip Interpreter) VisitBlockStmt(stmt stmt.Block) error {
+	newEnv := env.NewEnv().WithParent(ip.env)
+	return ip.executeBlock(stmt.Statements, newEnv)
+}
+
+
 func (ip Interpreter) execute(stmt stmt.Stmt) error {
 	return stmt.Accept(ip)
+}
+
+
+func (ip Interpreter) executeBlock(statements []stmt.Stmt, env *env.Env) error {
+	previous := ip.env
+	ip.env = env
+	for _, stmt := range statements {
+		err := ip.execute(stmt)
+		if err != nil {
+			ip.env = previous
+			return err
+		}
+	}
+
+	ip.env = previous
+	return nil
 }
 
 
