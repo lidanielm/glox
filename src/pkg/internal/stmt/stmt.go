@@ -64,3 +64,17 @@ func NewBlock(statements []Stmt) *Block {
 func (b Block) Accept(visitor Visitor[any]) error {
 	return visitor.VisitBlockStmt(b)
 }
+
+type If struct {
+	Condition ast.Expr
+	ThenBranch Stmt
+	ElseBranch Stmt
+}
+
+func NewIf(condition ast.Expr, thenBranch Stmt, elseBranch Stmt) *If {
+	return &If{Condition: condition, ThenBranch: thenBranch, ElseBranch: elseBranch}
+}
+
+func (i If) Accept(visitor Visitor[any]) error {
+	return visitor.VisitIfStmt(i)
+}

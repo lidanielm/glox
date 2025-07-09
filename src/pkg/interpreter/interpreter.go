@@ -181,10 +181,12 @@ func (ip *Interpreter) evaluate(expr ast.Expr) (any, error) {
 
 /** STATEMENT METHODS */
 func (ip *Interpreter) VisitExpressionStmt(stmt stmt.Expression) error {
-	_, err := ip.evaluate(stmt.Expr)
+	val, err := ip.evaluate(stmt.Expr)
 	if err != nil {
 		return err
 	}
+
+	fmt.Println(stringify(val))
 
 	return nil
 }
@@ -219,6 +221,22 @@ func (ip *Interpreter) VisitVarStmt(stmt stmt.Var) error {
 func (ip *Interpreter) VisitBlockStmt(stmt stmt.Block) error {
 	newEnv := env.NewEnv().WithParent(ip.env)
 	return ip.executeBlock(stmt.Statements, newEnv)
+}
+
+// Wrapper for Go conditional control flow
+func (ip *Interpreter) VisitIfStmt(stmt stmt.If) error {
+	truthy, err := ip.evaluate(stmt.Condition)
+	if err != nil {
+		return err
+	}
+
+	if ip.isTruthy(truthy) {
+		return ip.execute(stmt.ThenBranch)
+	} else if stmt.ElseBranch != nil {
+		return ip.execute(stmt.ElseBranch)
+	}
+
+	return nil
 }
 
 

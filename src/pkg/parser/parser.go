@@ -71,7 +71,9 @@ func (p *Parser) varDeclaration() (stmt.Stmt, error) {
 
 
 func (p *Parser) statement() (stmt.Stmt, error) {
-	if p.match(token.PRINT) {
+	if p.match(token.IF) {
+		return p.ifStatement()
+	} else if p.match(token.PRINT) {
 		return p.printStatement()
 	} else if p.match(token.LEFT_BRACE) {
 		block, err := p.block()
@@ -84,6 +86,36 @@ func (p *Parser) statement() (stmt.Stmt, error) {
 	return p.expressionStatement()
 }
 
+func (p *Parser) ifStatement() (stmt.Stmt, error) {
+	_, err := p.consume(token.LEFT_PAREN, "Expect '(' after 'if'.")
+	if err != nil {
+		return nil, err
+	}
+	condition, err := p.expression()
+	if err != nil {
+		return nil, err
+	}
+	_, err = p.consume(token.RIGHT_PAREN, "Expect ')' after 'if'.")
+	if err != nil {
+		return nil, err
+	}
+
+	thenBranch, err := p.statement()
+	if err != nil {
+		return nil, err
+	}
+
+	if p.match(token.ELSE) {
+		elseBranch, err := p.statement()
+		if err != nil {
+			return nil, err
+		}
+
+		return stmt.NewIf(condition, thenBranch, elseBranch), nil
+	} else {
+		return stmt.NewIf(condition, thenBranch, nil), nil
+	}
+}
 
 func (p *Parser) printStatement() (stmt.Stmt, error) {
 	// Evaluate argument

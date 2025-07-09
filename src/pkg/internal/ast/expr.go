@@ -45,10 +45,10 @@ func (g Grouping) Accept(visitor Visitor[any]) (any, error) {
 }
 
 type Literal struct {
-	Value interface{}
+	Value any
 }
 
-func NewLiteral(Value interface{}) *Literal {
+func NewLiteral(Value any) *Literal {
 	return &Literal{Value: Value}
 }
 
