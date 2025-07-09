@@ -74,7 +74,11 @@ func (p *Parser) statement() (stmt.Stmt, error) {
 	if p.match(token.PRINT) {
 		return p.printStatement()
 	} else if p.match(token.LEFT_BRACE) {
-		return stmt.NewBlock(), nil
+		block, err := p.block()
+		if err != nil {
+			return nil, err
+		}
+		return stmt.NewBlock(block), nil
 	}
 
 	return p.expressionStatement()

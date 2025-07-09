@@ -57,8 +57,8 @@ type Block struct {
 	Statements []Stmt
 }
 
-func NewBlock() *Block {
-	return &Block{Statements: []Stmt{}}
+func NewBlock(statements []Stmt) *Block {
+	return &Block{Statements: statements}
 }
 
 func (b Block) Accept(visitor Visitor[any]) error {
