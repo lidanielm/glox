@@ -13,6 +13,7 @@ import (
 type Parser struct {
 	tokens []token.Token
 	curr int
+	enclosingLoop *stmt.While
 }
 
 // Constructor for Parser
@@ -81,6 +82,8 @@ func (p *Parser) statement() (stmt.Stmt, error) {
 		return p.whileStatement()
 	} else if p.match(token.FOR) {
 		return p.forStatement()
+	} else if p.match(token.BREAK) {
+		return p.breakStatement()
 	} else if p.match(token.LEFT_BRACE) {
 		block, err := p.block()
 		if err != nil {
@@ -139,12 +142,19 @@ func (p *Parser) whileStatement() (stmt.Stmt, error) {
 		return nil, err
 	}
 
+	prevLoop := p.enclosingLoop
+	whileStmt := stmt.NewWhile(condition)
+	p.enclosingLoop = whileStmt
+
 	body, err := p.statement()
+	p.enclosingLoop = prevLoop
 	if err != nil {
 		return nil, err
 	}
 
-	return stmt.NewWhile(condition, body), nil
+	whileStmt = whileStmt.WithBody(body)
+
+	return whileStmt, nil
 }
 
 func (p *Parser) forStatement() (stmt.Stmt, error) {
@@ -194,7 +204,12 @@ func (p *Parser) forStatement() (stmt.Stmt, error) {
 		return nil, err
 	}
 
+	prevLoop := p.enclosingLoop
+	whileStmt := stmt.NewWhile(condition)
+	p.enclosingLoop = whileStmt
+	
 	body, err := p.statement()
+	p.enclosingLoop = prevLoop
 	if err != nil {
 		return nil, err
 	}
@@ -210,7 +225,7 @@ func (p *Parser) forStatement() (stmt.Stmt, error) {
 		condition = ast.NewLiteral(true)
 	}
 
-	body = stmt.NewWhile(condition, body)
+	body = whileStmt.WithBody(body)
 
 	if initializer != nil {
 		body = stmt.NewBlock([]stmt.Stmt{
@@ -220,6 +235,19 @@ func (p *Parser) forStatement() (stmt.Stmt, error) {
 	}
 
 	return body, nil
+}
+
+func (p *Parser) breakStatement() (stmt.Stmt, error) {
+	if p.enclosingLoop == nil {
+		return nil, lox_error.NewParseError(p.peek(), "'break' statement has no enclosing loop.")
+	}
+
+	_, err := p.consume(token.SEMICOLON, "Expect semicolon after 'break'.")
+	if err != nil {
+		return nil, err
+	}
+
+	return stmt.NewBreak(p.enclosingLoop), nil
 }
 
 func (p *Parser) printStatement() (stmt.Stmt, error) {

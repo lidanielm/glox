@@ -16,6 +16,7 @@ type Visitor[R any] interface {
 	VisitBlockStmt(stmt Block) error
 	VisitIfStmt(stmt If) error
 	VisitWhileStmt(stmt While) error
+	VisitBreakStmt(stmt Break) error
 }
 
 type Expression struct {
@@ -86,10 +87,27 @@ type While struct {
 	Body Stmt
 }
 
-func NewWhile(condition ast.Expr, body Stmt) *While {
-	return &While{Condition: condition, Body: body}
+func NewWhile(condition ast.Expr) *While {
+	return &While{Condition: condition}
+}
+
+func (w *While) WithBody(body Stmt) *While {
+	w.Body = body
+	return w
 }
 
 func (w While) Accept(visitor Visitor[any]) error {
 	return visitor.VisitWhileStmt(w)
+}
+
+type Break struct {
+	Loop *While
+}
+
+func NewBreak(loop *While) *Break {
+	return &Break{Loop: loop}
+}
+
+func (b Break) Accept(visitor Visitor[any]) error {
+	return visitor.VisitBreakStmt(b)
 }

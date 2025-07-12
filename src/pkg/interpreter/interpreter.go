@@ -11,6 +11,13 @@ import (
 	"github.com/lidanielm/glox/src/pkg/token"
 )
 
+// BreakError is a special error type used to handle break statements
+type BreakError struct{}
+
+func (b BreakError) Error() string {
+	return "break"
+}
+
 type Interpreter struct {
 	env *env.Env
 }
@@ -207,8 +214,6 @@ func (ip *Interpreter) VisitExpressionStmt(stmt stmt.Expression) error {
 		return err
 	}
 
-	// fmt.Println(stringify(val))
-
 	return nil
 }
 
@@ -261,19 +266,28 @@ func (ip *Interpreter) VisitIfStmt(stmt stmt.If) error {
 }
 
 func (ip *Interpreter) VisitWhileStmt(stmt stmt.While) error {
-	eval, err := ip.evaluate(stmt.Condition)
-	for ; err == nil && isTruthy(eval); eval, err = ip.evaluate(stmt.Condition) {
-		err := ip.execute(stmt.Body)
+	for {
+		eval, err := ip.evaluate(stmt.Condition)
 		if err != nil {
 			return err
 		}
+		if !isTruthy(eval) {
+			break
+		}
+		
+		err = ip.execute(stmt.Body)
+		if err != nil {
+			if _, ok := err.(BreakError); ok {
+				return nil
+			}
+			return err
+		}
 	}
-
-	if err != nil {
-		return err
-	}
-
 	return nil
+}
+
+func (ip *Interpreter) VisitBreakStmt(stmt stmt.Break) error {
+	return BreakError{} // Custom error to signal breaking
 }
 
 
