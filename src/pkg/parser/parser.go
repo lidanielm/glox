@@ -1,6 +1,8 @@
 package parser
 
 import (
+	"slices"
+
 	"github.com/lidanielm/glox/src/pkg/internal/ast"
 	"github.com/lidanielm/glox/src/pkg/internal/stmt"
 	"github.com/lidanielm/glox/src/pkg/lox_error"
@@ -75,6 +77,10 @@ func (p *Parser) statement() (stmt.Stmt, error) {
 		return p.ifStatement()
 	} else if p.match(token.PRINT) {
 		return p.printStatement()
+	} else if p.match(token.WHILE) {
+		return p.whileStatement()
+	} else if p.match(token.FOR) {
+		return p.forStatement()
 	} else if p.match(token.LEFT_BRACE) {
 		block, err := p.block()
 		if err != nil {
@@ -117,6 +123,105 @@ func (p *Parser) ifStatement() (stmt.Stmt, error) {
 	}
 }
 
+func (p *Parser) whileStatement() (stmt.Stmt, error) {
+	_, err := p.consume(token.LEFT_PAREN, "Expect '(' after 'while'.")
+	if err != nil {
+		return nil, err
+	}
+
+	condition, err := p.expression()
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = p.consume(token.RIGHT_PAREN, "Expect ')' after condition.")
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := p.statement()
+	if err != nil {
+		return nil, err
+	}
+
+	return stmt.NewWhile(condition, body), nil
+}
+
+func (p *Parser) forStatement() (stmt.Stmt, error) {
+	_, err := p.consume(token.LEFT_PAREN, "Expect '(' after 'for'.")
+	if err != nil {
+		return nil, err
+	}
+
+	var initializer stmt.Stmt
+	if p.match(token.SEMICOLON) {
+		initializer = nil
+	} else if p.match(token.VAR) {
+		initializer, err = p.varDeclaration()
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		initializer, err = p.expressionStatement()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var condition ast.Expr
+	if !p.check(token.SEMICOLON) {
+		condition, err = p.expression()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	_, err = p.consume(token.SEMICOLON, "Expect ';' after loop condition.")
+	if err != nil {
+		return nil, err
+	}
+
+	var increment ast.Expr
+	if !p.check(token.RIGHT_PAREN) {
+		increment, err = p.expression()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	_, err = p.consume(token.RIGHT_PAREN, "Expect ')' after for clauses.")
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := p.statement()
+	if err != nil {
+		return nil, err
+	}
+
+	if increment != nil {
+		body = stmt.NewBlock([]stmt.Stmt{
+			body,
+			stmt.NewExpression(increment),
+		})
+	}
+
+	if condition == nil {
+		condition = ast.NewLiteral(true)
+	}
+
+	body = stmt.NewWhile(condition, body)
+
+	if initializer != nil {
+		body = stmt.NewBlock([]stmt.Stmt{
+			initializer,
+			body,
+		})
+	}
+
+	return body, nil
+}
+
 func (p *Parser) printStatement() (stmt.Stmt, error) {
 	// Evaluate argument
 	value, err := p.expression()
@@ -140,15 +245,6 @@ func (p *Parser) expressionStatement() (stmt.Stmt, error) {
 }
 
 
-// Evaluate the expression recursively
-func (p *Parser) expression() (ast.Expr, error) {
-	expr, err := p.assignment()
-	if err != nil {
-		return nil, err
-	}
-	return expr, nil
-}
-
 func (p *Parser) block() ([]stmt.Stmt, error) {
 	statements := []stmt.Stmt{}
 
@@ -165,6 +261,16 @@ func (p *Parser) block() ([]stmt.Stmt, error) {
 }
 
 
+// Evaluate the expression recursively
+func (p *Parser) expression() (ast.Expr, error) {
+	expr, err := p.assignment()
+	if err != nil {
+		return nil, err
+	}
+	return expr, nil
+}
+
+
 func (p *Parser) assignment() (ast.Expr, error) {
 	expr, err := p.ternary()
 	if err != nil {
@@ -178,12 +284,12 @@ func (p *Parser) assignment() (ast.Expr, error) {
 			return nil, err
 		}
 
-		if variable, ok := expr.(ast.Variable); ok {
+		if variable, ok := expr.(*ast.Variable); ok {
 			name := variable.Name
 			return ast.NewAssign(name, value), nil
 		}
 
-		return nil, lox_error.NewRuntimeError(equals, "Invalid assignment target.")
+		return nil, lox_error.NewParseError(equals, "Invalid assignment target.")
 	}
 
 	return expr, nil
@@ -192,25 +298,64 @@ func (p *Parser) assignment() (ast.Expr, error) {
 
 // Evaluate ternary operation
 func (p *Parser) ternary() (ast.Expr, error) {
-	expr, err := p.equality()
+	expr, err := p.logical_or()
 	if err != nil {
 		return nil, err
 	}
 
 	for p.match(token.INTERRO) {
 		operator1 := p.previous()
-		left, err := p.equality()
+		left, err := p.logical_or()
 		if err != nil {
 			return nil, err
 		}
 
 		operator2 := p.previous()
-		right, err := p.equality()
+		right, err := p.logical_or()
 		if err != nil {
 			return nil, err
 		}
 
 		expr = ast.NewTernary(expr, operator1, left, operator2, right)
+	}
+
+	return expr, nil
+}
+
+
+func (p *Parser) logical_or() (ast.Expr, error) {
+	expr, err := p.logical_and()
+	if err != nil {
+		return nil, err
+	}
+
+	if p.match(token.OR) {
+		operator := p.previous()
+		right, err := p.logical_and()
+		if err != nil {
+			return nil, err
+		}
+		return ast.NewLogical(expr, operator, right), nil
+	}
+
+	return expr, nil
+}
+
+
+func (p *Parser) logical_and() (ast.Expr, error) {
+	expr, err := p.equality()
+	if err != nil {
+		return nil, err
+	}
+
+	if p.match(token.AND) {
+		operator := p.previous()
+		right, err := p.equality()
+		if err != nil {
+			return nil, err
+		}
+
+		return ast.NewLogical(expr, operator, right), nil
 	}
 
 	return expr, nil
@@ -340,12 +485,12 @@ func (p *Parser) primary() (ast.Expr, error) {
 			return nil, err
 		}
 		if !p.match(token.RIGHT_PAREN) {
-			return nil, lox_error.NewError(p.peek(), "Expect ')' after expression.")
+			return nil, lox_error.NewParseError(p.peek(), "Expect ')' after expression.")
 		}
 		return ast.NewGrouping(expr), nil
 	}
 
-	return nil, lox_error.NewError(p.peek(), "Expecting expression.")
+	return nil, lox_error.NewParseError(p.peek(), "Expecting expression.")
 }
 
 
@@ -381,12 +526,10 @@ func (p *Parser) synchronize() {
 // Check if the current token has any of the given type. If so, it consumes the token
 // and returns true. Otherwise, it returns false and leaves the token alone.
 func (p *Parser) match(tokenTypes ...token.TokenType) bool {
-	for _, tokenType := range tokenTypes {
-		if p.check(tokenType) {
+	if slices.ContainsFunc(tokenTypes, p.check) {
 			p.advance()
 			return true
 		}
-	}
 
 	return false
 }

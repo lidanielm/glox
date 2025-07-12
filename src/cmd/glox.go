@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	fmt.Println(os.Args)
+	// fmt.Println(os.Args)
 	if len(os.Args) > 2 {
 		fmt.Println("Usage: golox [script]")
 		os.Exit(64)
@@ -48,10 +48,15 @@ func runPrompt() error {
 		}
 		err := run(string(line), interpreter)
 		if err != nil {
-			if _, ok := err.(*lox_error.RuntimeError); ok {
-				os.Exit(70)
-			} else if _, ok := err.(*lox_error.LoxError); ok {
-				os.Exit(65)
+			if runtimeError, ok := err.(*lox_error.RuntimeError); ok {
+				fmt.Println(runtimeError.Error())
+				os.Exit(1)
+			} else if loxError, ok := err.(*lox_error.LoxError); ok {
+				fmt.Println(loxError.Error())
+				os.Exit(1)
+			} else if parseError, ok := err.(*lox_error.ParseError); ok {
+				fmt.Println(parseError.Error())
+				os.Exit(1)
 			} else {
 				os.Exit(1)
 			}

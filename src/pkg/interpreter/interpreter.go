@@ -24,7 +24,7 @@ func (ip *Interpreter) Interpret(stmts []stmt.Stmt) error {
     for _, stmt := range stmts {
 		err := ip.execute(stmt)
 		if err != nil {
-			ip.runtimeError(err)
+			runtimeError(err)
 			return err
 		}
 	}
@@ -57,7 +57,7 @@ func (ip *Interpreter) VisitUnaryExpr(unary ast.Unary) (any, error) {
         if !isBool(right) {
             return nil, lox_error.NewRuntimeError(unary.Operator, "Operand must be a boolean.")
         }
-		return !ip.isTruthy(right), nil
+		return !isTruthy(right), nil
     default:
         return nil, lox_error.NewRuntimeError(unary.Operator, "Invalid operator.")
 	}
@@ -123,9 +123,9 @@ func (ip *Interpreter) VisitBinaryExpr(binary ast.Binary) (any, error) {
         }
         return left.(float64) <= right.(float64), nil
     case token.BANG_EQUAL:
-        return !ip.isEqual(left, right), nil
+        return !isEqual(left, right), nil
     case token.EQUAL_EQUAL:
-        return !ip.isEqual(left, right), nil
+        return !isEqual(left, right), nil
     default:
         return nil, lox_error.NewRuntimeError(binary.Operator, "Invalid operator.")
     }
@@ -174,6 +174,27 @@ func (ip *Interpreter) VisitAssignExpr(expr ast.Assign) (any, error) {
 }
 
 
+func (ip *Interpreter) VisitLogicalExpr(expr ast.Logical) (any, error) {
+	leftVal, err := ip.evaluate(expr.Left)
+	if err != nil {
+		return nil, err
+	}
+
+	switch expr.Operator.Type {
+	case token.OR:
+		if isTruthy(leftVal) {
+			return leftVal, nil
+		}
+	case token.AND:
+		if !isTruthy(leftVal) {
+			return leftVal, nil
+		}
+	}
+
+	return ip.evaluate(expr.Right)
+}
+
+
 func (ip *Interpreter) evaluate(expr ast.Expr) (any, error) {
 	return expr.Accept(ip)
 }
@@ -181,12 +202,12 @@ func (ip *Interpreter) evaluate(expr ast.Expr) (any, error) {
 
 /** STATEMENT METHODS */
 func (ip *Interpreter) VisitExpressionStmt(stmt stmt.Expression) error {
-	val, err := ip.evaluate(stmt.Expr)
+	_, err := ip.evaluate(stmt.Expr)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println(stringify(val))
+	// fmt.Println(stringify(val))
 
 	return nil
 }
@@ -230,10 +251,26 @@ func (ip *Interpreter) VisitIfStmt(stmt stmt.If) error {
 		return err
 	}
 
-	if ip.isTruthy(truthy) {
+	if isTruthy(truthy) {
 		return ip.execute(stmt.ThenBranch)
 	} else if stmt.ElseBranch != nil {
 		return ip.execute(stmt.ElseBranch)
+	}
+
+	return nil
+}
+
+func (ip *Interpreter) VisitWhileStmt(stmt stmt.While) error {
+	eval, err := ip.evaluate(stmt.Condition)
+	for ; err == nil && isTruthy(eval); eval, err = ip.evaluate(stmt.Condition) {
+		err := ip.execute(stmt.Body)
+		if err != nil {
+			return err
+		}
+	}
+
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -262,7 +299,7 @@ func (ip *Interpreter) executeBlock(statements []stmt.Stmt, env *env.Env) error 
 
 
 /** HELPER METHODS */
-func (ip *Interpreter) isTruthy(expr any) bool {
+func isTruthy(expr any) bool {
 	if expr == nil {
 		return false
 	}
@@ -273,7 +310,7 @@ func (ip *Interpreter) isTruthy(expr any) bool {
 	return true
 }
 
-func (ip *Interpreter) isEqual(left any, right any) bool {
+func isEqual(left any, right any) bool {
     if left == nil && right == nil {
         return true
     }
@@ -285,7 +322,7 @@ func (ip *Interpreter) isEqual(left any, right any) bool {
     return left == right
 }
 
-func (ip *Interpreter) runtimeError(err error) {
+func runtimeError(err error) {
 	fmt.Println(err.Error())
 }
 

@@ -4,6 +4,8 @@ import (
 	"fmt"
 
 	"github.com/lidanielm/glox/src/pkg/internal/ast"
+	"github.com/lidanielm/glox/src/pkg/lox_error"
+	"github.com/lidanielm/glox/src/pkg/token"
 )
 
 type AstPrinter struct {}
@@ -46,6 +48,17 @@ func (a AstPrinter) VisitVariableExpr(expr ast.Variable) (any, error) {
 
 func (a AstPrinter) VisitAssignExpr(expr ast.Assign) (any, error) {
 	return a.parenthesize("var"+expr.Name.Lexeme+" = ", expr.Value)
+}
+
+func (a AstPrinter) VisitLogicalExpr(expr ast.Logical) (any, error) {
+	switch expr.Operator.Type {
+	case token.OR:
+		return a.parenthesize("or", expr.Left, expr.Right)
+	case token.AND:
+		return a.parenthesize("and", expr.Left, expr.Right)
+	default:
+		return nil, lox_error.NewError(expr.Operator, "Unrecognizable logical expression.")
+	}
 }
 
 func (a AstPrinter) parenthesize(name string, exprs ...ast.Expr) (string, error) {

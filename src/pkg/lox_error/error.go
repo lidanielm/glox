@@ -34,7 +34,6 @@ type RuntimeError struct {
 
 func NewRuntimeError(tok token.Token, msg string) *RuntimeError {
 	err := &RuntimeError{Token: tok, Message: msg}
-	// fmt.Println(err.Error())
 	return err
 }
 
@@ -49,10 +48,9 @@ type ParseError struct {
 
 func NewParseError(tok token.Token, message string) *ParseError {
 	err := &ParseError{Token: tok, Message: message}
-	// fmt.Println(err.Error())
 	return err
 }
 
 func (e *ParseError) Error() string {
-	return fmt.Sprintf("ParseError at [line %d]: %s", e.Token.Line, e.Message)
+	return fmt.Sprintf("ParseError at [line %d] at '%v': %s", e.Token.Line, e.Token.Lexeme, e.Message)
 }

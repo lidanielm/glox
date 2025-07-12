@@ -16,6 +16,7 @@ type Visitor[R any] interface {
 	VisitTernaryExpr(expr Ternary) (R, error)
 	VisitVariableExpr(expr Variable) (R, error)
 	VisitAssignExpr(expr Assign) (R, error)
+	VisitLogicalExpr(expr Logical) (R, error)
 }
 
 type Binary struct {
@@ -54,6 +55,20 @@ func NewLiteral(Value any) *Literal {
 
 func (l Literal) Accept(visitor Visitor[any]) (any, error) {
 	return visitor.VisitLiteralExpr(l)
+}
+
+type Logical struct {
+	Left Expr
+	Operator token.Token
+	Right Expr
+}
+
+func NewLogical(left Expr, operator token.Token, right Expr) *Logical {
+	return &Logical{Left: left, Operator: operator, Right: right}
+}
+
+func (l Logical) Accept(visitor Visitor[any]) (any, error) {
+	return visitor.VisitLogicalExpr(l)
 }
 
 type Unary struct {

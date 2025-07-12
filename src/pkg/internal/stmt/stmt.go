@@ -14,6 +14,8 @@ type Visitor[R any] interface {
 	VisitPrintStmt(stmt Print) error
 	VisitVarStmt(stmt Var) error
 	VisitBlockStmt(stmt Block) error
+	VisitIfStmt(stmt If) error
+	VisitWhileStmt(stmt While) error
 }
 
 type Expression struct {
@@ -77,4 +79,17 @@ func NewIf(condition ast.Expr, thenBranch Stmt, elseBranch Stmt) *If {
 
 func (i If) Accept(visitor Visitor[any]) error {
 	return visitor.VisitIfStmt(i)
+}
+
+type While struct {
+	Condition ast.Expr
+	Body Stmt
+}
+
+func NewWhile(condition ast.Expr, body Stmt) *While {
+	return &While{Condition: condition, Body: body}
+}
+
+func (w While) Accept(visitor Visitor[any]) error {
+	return visitor.VisitWhileStmt(w)
 }
