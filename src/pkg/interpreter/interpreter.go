@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/lidanielm/glox/src/pkg/env"
 	"github.com/lidanielm/glox/src/pkg/internal/ast"
 	"github.com/lidanielm/glox/src/pkg/internal/stmt"
 	"github.com/lidanielm/glox/src/pkg/lox_error"
@@ -12,12 +11,12 @@ import (
 )
 
 type Interpreter struct {
-	env *env.Env
-	Globals *env.Env
+	env *Env
+	Globals *Env
 }
 
 func NewInterpreter() *Interpreter {
-	globals := env.NewEnv()
+	globals := NewEnv()
 	globals.Define("clock", &ClockFn{})
 	env := globals
 	return &Interpreter{env: env, Globals: globals}
@@ -270,7 +269,7 @@ func (ip *Interpreter) VisitVarStmt(stmt stmt.Var) error {
 
 
 func (ip *Interpreter) VisitBlockStmt(stmt stmt.Block) error {
-	newEnv := env.NewEnv().WithParent(ip.env)
+	newEnv := NewEnv().WithParent(ip.env)
 	return ip.executeBlock(stmt.Statements, newEnv)
 }
 
@@ -359,7 +358,7 @@ func (ip *Interpreter) execute(stmt stmt.Stmt) error {
 }
 
 
-func (ip *Interpreter) executeBlock(statements []stmt.Stmt, env *env.Env) error {
+func (ip *Interpreter) executeBlock(statements []stmt.Stmt, env *Env) error {
 	previous := ip.env
 	ip.env = env
 	for _, stmt := range statements {

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/lidanielm/glox/src/pkg/env"
 	"github.com/lidanielm/glox/src/pkg/internal/stmt"
 	"github.com/lidanielm/glox/src/pkg/lox_error"
 )
@@ -16,10 +15,10 @@ type Callable interface {
 
 type Function struct {
 	declaration stmt.Function
-	closure *env.Env
+	closure *Env
 }
 
-func NewFunction(declaration stmt.Function, closure *env.Env) *Function {
+func NewFunction(declaration stmt.Function, closure *Env) *Function {
 	return &Function{declaration: declaration, closure: closure}
 }
 
@@ -28,7 +27,7 @@ func (f Function) Arity() int {
 }
 
 func (f Function) Call(ip *Interpreter, arguments []any) (any, error) {
-	env := env.NewEnv().WithParent(f.closure)
+	env := NewEnv().WithParent(f.closure)
 	for i, param := range f.declaration.Params {
 		env.Define(param.Lexeme, arguments[i])
 	}

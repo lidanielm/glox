@@ -1,4 +1,4 @@
-package env
+package interpreter
 
 import (
 	"github.com/lidanielm/glox/src/pkg/lox_error"
