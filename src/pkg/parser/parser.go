@@ -37,6 +37,14 @@ func (p *Parser) Parse() ([]stmt.Stmt, error) {
 
 
 func (p *Parser) declaration() (stmt.Stmt, error) {
+	if p.match(token.FUN) {
+		fn, err := p.function("function")
+		if err != nil {
+			return nil, err
+		}
+
+		return fn, nil
+	}
 	if p.match(token.VAR) {
 		stmt, err := p.varDeclaration()
 		if err != nil {
@@ -50,6 +58,55 @@ func (p *Parser) declaration() (stmt.Stmt, error) {
 	return p.statement()
 }
 
+
+func (p *Parser) function(kind string) (stmt.Function, error) {
+	name, err := p.consume(token.IDENTIFIER, "Expect "+kind+" name.")
+	if err != nil {
+		return stmt.Function{}, err
+	}
+
+	_, err = p.consume(token.LEFT_PAREN, "Expect '(' after "+kind+" name.")
+	if err != nil {
+		return stmt.Function{}, err
+	}
+
+	params := []token.Token{}
+	if !p.check(token.RIGHT_PAREN) {
+		for {
+			if len(params) >= 255 {
+				return stmt.Function{}, lox_error.NewParseError(p.peek(), "Can't have more than 255 parameters.")
+			}
+	
+			identifier, err := p.consume(token.IDENTIFIER, "Expect parameter name.")
+			if err != nil {
+				return stmt.Function{}, err
+			}
+	
+			params = append(params, identifier)
+
+			if !p.match(token.COMMA) {
+				break
+			}
+		}
+	}
+
+	_, err = p.consume(token.RIGHT_PAREN, "Expect ')' after parameters.")
+	if err != nil {
+		return stmt.Function{}, err
+	}
+
+	_, err = p.consume(token.LEFT_BRACE, "Expect '{' before "+kind+" body.")
+	if err != nil {
+		return stmt.Function{}, err
+	}
+
+	body, err := p.block()
+	if err != nil {
+		return stmt.Function{}, err
+	}
+
+	return *stmt.NewFunction(name, params, body), nil
+}
 
 func (p *Parser) varDeclaration() (stmt.Stmt, error) {
 	name, err := p.consume(token.IDENTIFIER, "Expect variable name.")
@@ -86,6 +143,8 @@ func (p *Parser) statement() (stmt.Stmt, error) {
 		return p.breakStatement()
 	} else if p.match(token.CONTINUE) {
 		return p.continueStatement()
+	} else if p.match(token.RETURN) {
+		return p.returnStatement()
 	} else if p.match(token.LEFT_BRACE) {
 		block, err := p.block()
 		if err != nil {
@@ -260,6 +319,26 @@ func (p *Parser) continueStatement() (stmt.Stmt, error) {
 	}
 
 	return stmt.NewContinue(p.enclosingLoop), nil
+}
+
+func (p *Parser) returnStatement() (stmt.Stmt, error) {
+	keyword := p.previous()
+
+	var expr ast.Expr
+	if !p.check(token.SEMICOLON) {
+		var err error
+		expr, err = p.expression()
+		if err != nil {
+			return nil, err
+		}
+	}
+	
+	_, err := p.consume(token.SEMICOLON, "Expect ';' after return value.")
+	if err != nil {
+		return nil, err
+	}
+	
+	return stmt.NewReturn(keyword, expr), nil
 }
 
 func (p *Parser) printStatement() (stmt.Stmt, error) {
@@ -489,13 +568,59 @@ func (p *Parser) unary() (ast.Expr, error) {
 		}
 		return ast.NewUnary(operator, right), nil
 	}
-	
-	// If there isn't a unary operator, parse it as a primary operation
+
+	return p.call()
+}
+
+func (p *Parser) call() (ast.Expr, error) {
 	expr, err := p.primary()
 	if err != nil {
 		return nil, err
 	}
+
+	for {
+		if p.match(token.LEFT_PAREN) {
+			expr, err = p.finishCall(expr)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			break
+		}
+	}
+
 	return expr, nil
+}
+
+func (p *Parser) finishCall(callee ast.Expr) (ast.Expr, error) {
+	arguments := []ast.Expr{}
+	if !p.check(token.RIGHT_PAREN) {
+		expr, err := p.expression()
+		for {
+			if err != nil {
+				return nil, err
+			}
+
+			if len(arguments) >= 255 {
+				return nil, lox_error.NewParseError(p.peek(), "Can't have more than 255 arguments.")
+			}
+
+			arguments = append(arguments, expr)
+
+			if !p.match(token.COMMA) {
+				break
+			}
+
+			expr, err = p.expression()
+		}
+	}
+
+	paren, err := p.consume(token.RIGHT_PAREN, "Expect ')' after arguments.")
+	if err != nil {
+		return nil, err
+	}
+
+	return ast.NewCall(callee, paren, arguments), nil
 }
 
 func (p *Parser) primary() (ast.Expr, error) {

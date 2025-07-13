@@ -11,27 +11,16 @@ import (
 	"github.com/lidanielm/glox/src/pkg/token"
 )
 
-// BreakError is a special error type used to handle break statements
-type BreakError struct{}
-
-func (b BreakError) Error() string {
-	return "break"
-}
-
-// ContinueError is a special error type used to handle continue statements
-type ContinueError struct{}
-
-func (c ContinueError) Error() string {
-	return "continue"
-}
-
 type Interpreter struct {
 	env *env.Env
+	Globals *env.Env
 }
 
 func NewInterpreter() *Interpreter {
-	env := env.NewEnv()
-	return &Interpreter{env: env}
+	globals := env.NewEnv()
+	globals.Define("clock", &ClockFn{})
+	env := globals
+	return &Interpreter{env: env, Globals: globals}
 }
 
 func (ip *Interpreter) Interpret(stmts []stmt.Stmt) error {
@@ -209,6 +198,35 @@ func (ip *Interpreter) VisitLogicalExpr(expr ast.Logical) (any, error) {
 }
 
 
+func (ip *Interpreter) VisitCallExpr(expr ast.Call) (any, error) {
+	callee, err := ip.evaluate(expr.Callee)
+	if err != nil {
+		return nil, err
+	}
+
+	arguments := []any{}
+	for _, argument := range expr.Arguments {
+		value, err := ip.evaluate(argument)
+		if err != nil {
+			return nil, err
+		}
+		arguments = append(arguments, value)
+	}
+
+	callableFn, ok := callee.(Callable)
+	if !ok {
+		return nil, lox_error.NewRuntimeError(expr.Paren, "Can only call functions and classes.")
+	}
+
+	if len(arguments) != callableFn.Arity() {
+		return nil, lox_error.NewRuntimeError(expr.Paren, fmt.Sprintf("Expected %d arguments but got %d.", callableFn.Arity(), len(arguments)))
+	}
+
+	return callableFn.Call(ip, arguments)
+	
+}
+
+
 func (ip *Interpreter) evaluate(expr ast.Expr) (any, error) {
 	return expr.Accept(ip)
 }
@@ -285,9 +303,9 @@ func (ip *Interpreter) VisitWhileStmt(stmt stmt.While) error {
 		var continueLoop bool
 		err = ip.execute(stmt.Body)
 		if err != nil {
-			if _, ok := err.(BreakError); ok {
+			if _, ok := err.(lox_error.BreakError); ok {
 				return nil
-			} else if _, ok := err.(ContinueError); ok {
+			} else if _, ok := err.(lox_error.ContinueError); ok {
 				continueLoop = true
 			} else {
 				return err
@@ -308,12 +326,31 @@ func (ip *Interpreter) VisitWhileStmt(stmt stmt.While) error {
 	return nil
 }
 
+func (ip *Interpreter) VisitFunctionStmt(stmt stmt.Function) error {
+	function := NewFunction(stmt, ip.env)
+	ip.env.Define(stmt.Name.Lexeme, function)
+	return nil
+}
+
 func (ip *Interpreter) VisitBreakStmt(stmt stmt.Break) error {
-	return BreakError{} // Custom error to signal breaking
+	return lox_error.BreakError{} // Custom error to signal breaking
 }
 
 func (ip *Interpreter) VisitContinueStmt(stmt stmt.Continue) error {
-	return ContinueError{}
+	return lox_error.ContinueError{}
+}
+
+func (ip *Interpreter) VisitReturnStmt(stmt stmt.Return) error {
+	var value any
+	if stmt.Value != nil {
+		var err error
+		value, err = ip.evaluate(stmt.Value)
+		if err != nil {
+			return err
+		}
+	}
+
+	return lox_error.ReturnError{Value: value}
 }
 
 

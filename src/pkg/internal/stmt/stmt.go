@@ -18,6 +18,8 @@ type Visitor[R any] interface {
 	VisitWhileStmt(stmt While) error
 	VisitBreakStmt(stmt Break) error
 	VisitContinueStmt(stmt Continue) error
+	VisitFunctionStmt(stmt Function) error
+	VisitReturnStmt(stmt Return) error
 }
 
 type Expression struct {
@@ -103,8 +105,8 @@ func (w *While) WithIncrement(increment ast.Expr) *While {
 	return w
 }
 
-func (w While) Accept(visitor Visitor[any]) error {
-	return visitor.VisitWhileStmt(w)
+func (w *While) Accept(visitor Visitor[any]) error {
+	return visitor.VisitWhileStmt(*w)
 }
 
 type Break struct {
@@ -129,4 +131,31 @@ func NewContinue(loop *While) *Continue {
 
 func (c Continue) Accept(visitor Visitor[any]) error {
 	return visitor.VisitContinueStmt(c)
+}
+
+type Function struct {
+	Name token.Token
+	Params []token.Token
+	Body []Stmt
+}
+
+func NewFunction(name token.Token, params []token.Token, body []Stmt) *Function {
+	return &Function{Name: name, Params: params, Body: body}
+}
+
+func (f Function) Accept(visitor Visitor[any]) error {
+	return visitor.VisitFunctionStmt(f)
+}
+
+type Return struct {
+	Keyword token.Token
+	Value ast.Expr
+}
+
+func NewReturn(keyword token.Token, value ast.Expr) *Return {
+	return &Return{Keyword: keyword, Value: value}
+}
+
+func (r Return) Accept(visitor Visitor[any]) error {
+	return visitor.VisitReturnStmt(r)
 }

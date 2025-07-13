@@ -54,3 +54,25 @@ func NewParseError(tok token.Token, message string) *ParseError {
 func (e *ParseError) Error() string {
 	return fmt.Sprintf("Syntax error at [line %d] at '%v': %s", e.Token.Line, e.Token.Lexeme, e.Message)
 }
+
+// BreakError is a special error type used to handle break statements
+type BreakError struct{}
+
+func (b BreakError) Error() string {
+	return "break"
+}
+
+// ContinueError is a special error type used to handle continue statements
+type ContinueError struct{}
+
+func (c ContinueError) Error() string {
+	return "continue"
+}
+
+type ReturnError struct {
+	Value any
+}
+
+func (r ReturnError) Error() string {
+	return "return"
+}

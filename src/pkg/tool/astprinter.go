@@ -47,7 +47,7 @@ func (a AstPrinter) VisitVariableExpr(expr ast.Variable) (any, error) {
 }
 
 func (a AstPrinter) VisitAssignExpr(expr ast.Assign) (any, error) {
-	return a.parenthesize("var"+expr.Name.Lexeme+" = ", expr.Value)
+	return a.parenthesize("var "+expr.Name.Lexeme+" = ", expr.Value)
 }
 
 func (a AstPrinter) VisitLogicalExpr(expr ast.Logical) (any, error) {
@@ -59,6 +59,10 @@ func (a AstPrinter) VisitLogicalExpr(expr ast.Logical) (any, error) {
 	default:
 		return nil, lox_error.NewError(expr.Operator, "Unrecognizable logical expression.")
 	}
+}
+
+func (a AstPrinter) VisitCallExpr(expr ast.Call) (any, error) {
+	return a.parenthesize("call "+expr.Paren.Lexeme, expr.Arguments...)
 }
 
 func (a AstPrinter) parenthesize(name string, exprs ...ast.Expr) (string, error) {

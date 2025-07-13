@@ -17,12 +17,13 @@ type Visitor[R any] interface {
 	VisitVariableExpr(expr Variable) (R, error)
 	VisitAssignExpr(expr Assign) (R, error)
 	VisitLogicalExpr(expr Logical) (R, error)
+	VisitCallExpr(expr Call) (R, error)
 }
 
 type Binary struct {
-	Left Expr
+	Left     Expr
 	Operator token.Token
-	Right Expr
+	Right    Expr
 }
 
 func NewBinary(Left Expr, Operator token.Token, Right Expr) *Binary {
@@ -58,9 +59,9 @@ func (l Literal) Accept(visitor Visitor[any]) (any, error) {
 }
 
 type Logical struct {
-	Left Expr
+	Left     Expr
 	Operator token.Token
-	Right Expr
+	Right    Expr
 }
 
 func NewLogical(left Expr, operator token.Token, right Expr) *Logical {
@@ -73,7 +74,7 @@ func (l Logical) Accept(visitor Visitor[any]) (any, error) {
 
 type Unary struct {
 	Operator token.Token
-	Right Expr
+	Right    Expr
 }
 
 func NewUnary(Operator token.Token, Right Expr) *Unary {
@@ -87,9 +88,9 @@ func (u Unary) Accept(visitor Visitor[any]) (any, error) {
 type Ternary struct {
 	Condition Expr
 	Operator1 token.Token
-	Left Expr
+	Left      Expr
 	Operator2 token.Token
-	Right Expr
+	Right     Expr
 }
 
 func NewTernary(Condition Expr, Operator1 token.Token, Left Expr, Operator2 token.Token, Right Expr) *Ternary {
@@ -113,7 +114,7 @@ func (v Variable) Accept(visitor Visitor[any]) (any, error) {
 }
 
 type Assign struct {
-	Name token.Token
+	Name  token.Token
 	Value Expr
 }
 
@@ -123,4 +124,18 @@ func NewAssign(name token.Token, value Expr) *Assign {
 
 func (a Assign) Accept(visitor Visitor[any]) (any, error) {
 	return visitor.VisitAssignExpr(a)
+}
+
+type Call struct {
+	Callee    Expr
+	Paren     token.Token
+	Arguments []Expr
+}
+
+func NewCall(callee Expr, paren token.Token, arguments []Expr) *Call {
+	return &Call{Callee: callee, Paren: paren, Arguments: arguments}
+}
+
+func (c Call) Accept(visitor Visitor[any]) (any, error) {
+	return visitor.VisitCallExpr(c)
 }
