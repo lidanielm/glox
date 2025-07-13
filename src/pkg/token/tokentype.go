@@ -50,9 +50,10 @@ const (
 	TRUE
 	VAR
 	WHILE
-	BREAK // 40
+	BREAK
+	CONTINUE // 41
   
-	EOF // 41
+	EOF // 42
 	ERROR
 )
 
@@ -74,4 +75,5 @@ var Keywords = map[string]TokenType{
 	"var":    VAR,
 	"while":  WHILE,
 	"break": BREAK,
+	"continue": CONTINUE,
 }

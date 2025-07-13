@@ -17,6 +17,7 @@ type Visitor[R any] interface {
 	VisitIfStmt(stmt If) error
 	VisitWhileStmt(stmt While) error
 	VisitBreakStmt(stmt Break) error
+	VisitContinueStmt(stmt Continue) error
 }
 
 type Expression struct {
@@ -85,6 +86,7 @@ func (i If) Accept(visitor Visitor[any]) error {
 type While struct {
 	Condition ast.Expr
 	Body Stmt
+	Increment ast.Expr // optional, for for-loops
 }
 
 func NewWhile(condition ast.Expr) *While {
@@ -93,6 +95,11 @@ func NewWhile(condition ast.Expr) *While {
 
 func (w *While) WithBody(body Stmt) *While {
 	w.Body = body
+	return w
+}
+
+func (w *While) WithIncrement(increment ast.Expr) *While {
+	w.Increment = increment
 	return w
 }
 
@@ -110,4 +117,16 @@ func NewBreak(loop *While) *Break {
 
 func (b Break) Accept(visitor Visitor[any]) error {
 	return visitor.VisitBreakStmt(b)
+}
+
+type Continue struct {
+	Loop *While
+}
+
+func NewContinue(loop *While) *Continue {
+	return &Continue{Loop: loop}
+}
+
+func (c Continue) Accept(visitor Visitor[any]) error {
+	return visitor.VisitContinueStmt(c)
 }

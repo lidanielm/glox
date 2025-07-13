@@ -18,6 +18,13 @@ func (b BreakError) Error() string {
 	return "break"
 }
 
+// ContinueError is a special error type used to handle continue statements
+type ContinueError struct{}
+
+func (c ContinueError) Error() string {
+	return "continue"
+}
+
 type Interpreter struct {
 	env *env.Env
 }
@@ -274,13 +281,28 @@ func (ip *Interpreter) VisitWhileStmt(stmt stmt.While) error {
 		if !isTruthy(eval) {
 			break
 		}
-		
+
+		var continueLoop bool
 		err = ip.execute(stmt.Body)
 		if err != nil {
 			if _, ok := err.(BreakError); ok {
 				return nil
+			} else if _, ok := err.(ContinueError); ok {
+				continueLoop = true
+			} else {
+				return err
 			}
-			return err
+		}
+
+		if stmt.Increment != nil {
+			_, incErr := ip.evaluate(stmt.Increment)
+			if incErr != nil {
+				return incErr
+			}
+		}
+
+		if continueLoop {
+			continue
 		}
 	}
 	return nil
@@ -288,6 +310,10 @@ func (ip *Interpreter) VisitWhileStmt(stmt stmt.While) error {
 
 func (ip *Interpreter) VisitBreakStmt(stmt stmt.Break) error {
 	return BreakError{} // Custom error to signal breaking
+}
+
+func (ip *Interpreter) VisitContinueStmt(stmt stmt.Continue) error {
+	return ContinueError{}
 }
 
 

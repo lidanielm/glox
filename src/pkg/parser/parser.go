@@ -84,6 +84,8 @@ func (p *Parser) statement() (stmt.Stmt, error) {
 		return p.forStatement()
 	} else if p.match(token.BREAK) {
 		return p.breakStatement()
+	} else if p.match(token.CONTINUE) {
+		return p.continueStatement()
 	} else if p.match(token.LEFT_BRACE) {
 		block, err := p.block()
 		if err != nil {
@@ -215,10 +217,7 @@ func (p *Parser) forStatement() (stmt.Stmt, error) {
 	}
 
 	if increment != nil {
-		body = stmt.NewBlock([]stmt.Stmt{
-			body,
-			stmt.NewExpression(increment),
-		})
+		whileStmt = whileStmt.WithIncrement(increment)
 	}
 
 	if condition == nil {
@@ -248,6 +247,19 @@ func (p *Parser) breakStatement() (stmt.Stmt, error) {
 	}
 
 	return stmt.NewBreak(p.enclosingLoop), nil
+}
+
+func (p *Parser) continueStatement() (stmt.Stmt, error) {
+	if p.enclosingLoop == nil {
+		return nil, lox_error.NewParseError(p.peek(), "'continue' statement has no enclosing loop.")
+	}
+
+	_, err := p.consume(token.SEMICOLON, "Expect semicolon after 'continue'.")
+	if err != nil {
+		return nil, err
+	}
+
+	return stmt.NewContinue(p.enclosingLoop), nil
 }
 
 func (p *Parser) printStatement() (stmt.Stmt, error) {
