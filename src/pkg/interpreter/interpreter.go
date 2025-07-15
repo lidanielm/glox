@@ -12,14 +12,16 @@ import (
 
 type Interpreter struct {
 	env *Env
-	Globals *Env
+	globals *Env
+	locals map[ast.Expr]int
 }
 
 func NewInterpreter() *Interpreter {
 	globals := NewEnv()
 	globals.Define("clock", &ClockFn{})
 	env := globals
-	return &Interpreter{env: env, Globals: globals}
+	locals := make(map[ast.Expr]int)
+	return &Interpreter{env: env, globals: globals, locals: locals}
 }
 
 func (ip *Interpreter) Interpret(stmts []stmt.Stmt) error {
@@ -161,7 +163,7 @@ func (ip *Interpreter) VisitTernaryExpr(ternary ast.Ternary) (any, error) {
 
 
 func (ip *Interpreter) VisitVariableExpr(expr ast.Variable) (any, error) {
-	return ip.env.Get(expr.Name)
+	return ip.lookUpVariable(expr.Name, expr)
 }
 
 
@@ -171,7 +173,19 @@ func (ip *Interpreter) VisitAssignExpr(expr ast.Assign) (any, error) {
 		return nil, err
 	}
 
-	ip.env.Assign(expr.Name, value)
+	distance, ok := ip.locals[expr]
+	if ok {
+		err = ip.env.AssignAt(distance, expr.Name, value)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		err = ip.globals.Assign(expr.Name, value)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return value, nil
 }
 
@@ -357,6 +371,9 @@ func (ip *Interpreter) execute(stmt stmt.Stmt) error {
 	return stmt.Accept(ip)
 }
 
+func (ip *Interpreter) resolve(expr ast.Expr, depth int) {
+	ip.locals[expr] = depth
+}
 
 func (ip *Interpreter) executeBlock(statements []stmt.Stmt, env *Env) error {
 	previous := ip.env
@@ -373,6 +390,14 @@ func (ip *Interpreter) executeBlock(statements []stmt.Stmt, env *Env) error {
 	return nil
 }
 
+func (ip *Interpreter) lookUpVariable(name token.Token, expr ast.Expr) (any, error) {
+	distance, ok := ip.locals[expr]
+	if ok {
+		return ip.env.GetAt(distance, name)
+	} else {
+		return ip.globals.Get(name)
+	}
+}
 
 /** HELPER METHODS */
 func isTruthy(expr any) bool {

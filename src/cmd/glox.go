@@ -65,7 +65,7 @@ func runPrompt() error {
 	return nil
 }
 
-func run(source string, interpreter *interpreter.Interpreter) error {
+func run(source string, ip *interpreter.Interpreter) error {
 	// Run interpreter
 	scan := scanner.NewScanner(source)
 	tokens, err := scan.ScanTokens()
@@ -81,7 +81,14 @@ func run(source string, interpreter *interpreter.Interpreter) error {
 	if err != nil {
 		return err
 	}
-	interpreter.Interpret(statements)
+
+	resolver := interpreter.NewResolver(ip)
+	_, err = resolver.ResolveStmts(statements)
+	if err != nil {
+		return err
+	}
+
+	ip.Interpret(statements)
 	
 	return nil
 }
