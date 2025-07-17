@@ -20,6 +20,7 @@ type Visitor[R any] interface {
 	VisitContinueStmt(stmt Continue) error
 	VisitFunctionStmt(stmt Function) error
 	VisitReturnStmt(stmt Return) error
+	VisitClassStmt(stmt Class) error
 }
 
 type Expression struct {
@@ -158,4 +159,17 @@ func NewReturn(keyword token.Token, value ast.Expr) *Return {
 
 func (r Return) Accept(visitor Visitor[any]) error {
 	return visitor.VisitReturnStmt(r)
+}
+
+type Class struct {
+	Name token.Token
+	Methods []Function
+}
+
+func NewClass(name token.Token, methods []Function) *Class {
+	return &Class{Name: name, Methods: methods}
+}
+
+func (c Class) Accept(visitor Visitor[any]) error {
+	return visitor.VisitClassStmt(c)
 }

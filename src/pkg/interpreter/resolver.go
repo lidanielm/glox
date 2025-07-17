@@ -14,11 +14,12 @@ type Resolver struct {
 	ip *Interpreter
 	scopes tool.Stack[map[string]bool]
 	currFunc FunctionType
+	currClass ClassType
 }
 
 func NewResolver(ip *Interpreter) *Resolver {
 	scopes := tool.NewStack[map[string]bool]()
-	return &Resolver{ip: ip, scopes: *scopes, currFunc: NONE}
+	return &Resolver{ip: ip, scopes: *scopes, currFunc: NONE_FUNC, currClass: NONE_CLASS}
 }
 
 func (r *Resolver) VisitBlockStmt(stmt stmt.Block) error {
@@ -29,6 +30,29 @@ func (r *Resolver) VisitBlockStmt(stmt stmt.Block) error {
 }
 
 func (r *Resolver) VisitBreakStmt(stmt stmt.Break) error {
+	return nil
+}
+
+func (r *Resolver) VisitClassStmt(stmt stmt.Class) error {
+	enclosingClass := r.currClass
+	r.currClass = CLASS
+
+	r.declare(stmt.Name)
+
+	r.beginScope()
+	r.scopes.Peek()["this"] = true
+
+	for _, method := range stmt.Methods {
+		if method.Name.Lexeme == "init" {
+			r.resolveFunction(method, INITIALIZER)
+		} else {
+			r.resolveFunction(method, METHOD)
+		}
+	}
+
+	r.define(stmt.Name)
+	r.endScope()
+	r.currClass = enclosingClass
 	return nil
 }
 
@@ -100,12 +124,16 @@ func (r *Resolver) VisitWhileStmt(stmt stmt.While) error {
 }
 
 func (r *Resolver) VisitReturnStmt(stmt stmt.Return) error {
-	if r.currFunc == NONE {
+	if r.currFunc == NONE_FUNC {
 		return lox_error.NewParseError(stmt.Keyword, "Can't return from top-level code.")
 	}
 
 	if stmt.Value == nil {
 		return nil
+	}
+
+	if r.currFunc == INITIALIZER {
+		return lox_error.NewParseError(stmt.Keyword, "Can't return a value from an initializer.")
 	}
 
 	_, err := r.resolveExpr(stmt.Value)
@@ -116,7 +144,8 @@ func (r *Resolver) VisitVariableExpr(expr ast.Variable) (any, error) {
 	// If variable exists in current scope but value is false,
 	// that means we have declared it but not yet defined it
 	if !r.scopes.IsEmpty() {
-		val, ok := r.scopes.Peek()[expr.Name.Lexeme]
+		scope := r.scopes.Peek()
+		val, ok := scope[expr.Name.Lexeme]
 		if ok && !val {
 			return nil, lox_error.NewParseError(expr.Name, "Can't read local variable in its own initializer.")
 		}
@@ -165,6 +194,23 @@ func (r *Resolver) VisitCallExpr(expr ast.Call) (any, error) {
 	return nil, nil
 }
 
+func (r *Resolver) VisitGetExpr(expr ast.Get) (any, error) {
+	// Properties are looked up dynamically so they're not resolved
+	// Checking happens in the interpreter
+	_, err := r.resolveExpr(expr.Object)
+	return nil, err
+}
+
+func (r *Resolver) VisitSetExpr(expr ast.Set) (any, error) {
+	_, err := r.resolveExpr(expr.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = r.resolveExpr(expr.Value)
+	return nil, err
+}
+
 func (r *Resolver) VisitGroupingExpr(expr ast.Grouping) (any, error) {
 	_, err := r.resolveExpr(expr.Expression)
 	return nil, err
@@ -207,6 +253,14 @@ func (r *Resolver) VisitTernaryExpr(expr ast.Ternary) (any, error) {
 	return nil, nil
 }
 
+func (r *Resolver) VisitThisExpr(expr ast.This) (any, error) {
+	if r.currClass == NONE_CLASS {
+		return nil, lox_error.NewRuntimeError(expr.Keyword, "Can't use 'this' outside of a class.")
+	}
+	r.resolveLocal(expr, expr.Keyword)
+	return nil, nil
+}
+
 func (r *Resolver) VisitUnaryExpr(expr ast.Unary) (any, error) {
 	return r.resolveExpr(expr.Right)
 }
@@ -230,7 +284,7 @@ func (r *Resolver) resolveExpr(expr ast.Expr) (any, error) {
 }
 
 func (r *Resolver) resolveLocal(expr ast.Expr, name token.Token) {
-	for i := r.scopes.Length(); i >= 0; i-- {
+	for i := r.scopes.Length() - 1; i >= 0; i-- {
 		if _, ok := r.scopes.Get(i)[name.Lexeme]; ok {
 			r.ip.resolve(expr, r.scopes.Length() - 1 - i)
 			return

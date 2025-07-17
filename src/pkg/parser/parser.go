@@ -37,6 +37,14 @@ func (p *Parser) Parse() ([]stmt.Stmt, error) {
 
 
 func (p *Parser) declaration() (stmt.Stmt, error) {
+	if p.match(token.CLASS) {
+		class, err := p.classDeclaration()
+		if err != nil {
+			return nil, err
+		}
+
+		return class, nil
+	}
 	if p.match(token.FUN) {
 		fn, err := p.function("function")
 		if err != nil {
@@ -58,6 +66,33 @@ func (p *Parser) declaration() (stmt.Stmt, error) {
 	return p.statement()
 }
 
+func (p *Parser) classDeclaration() (stmt.Stmt, error) {
+	name, err := p.consume(token.IDENTIFIER, "Expect class name.")
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = p.consume(token.LEFT_BRACE, "Expect '{' after class name.")
+	if err != nil {
+		return nil, err
+	}
+
+	methods := make([]stmt.Function, 0)
+	for !p.check(token.RIGHT_BRACE) && !p.isAtEnd() {
+		fn, err := p.function("method")
+		if err != nil {
+			return nil, err
+		}
+		methods = append(methods, fn)
+	}
+
+	_, err = p.consume(token.RIGHT_BRACE, "Expect '}' after class body.")
+	if err != nil {
+		return nil, err
+	}
+
+	return stmt.NewClass(name, methods), nil
+}
 
 func (p *Parser) function(kind string) (stmt.Function, error) {
 	name, err := p.consume(token.IDENTIFIER, "Expect "+kind+" name.")
@@ -584,6 +619,13 @@ func (p *Parser) call() (ast.Expr, error) {
 			if err != nil {
 				return nil, err
 			}
+		} else if p.match(token.DOT) {
+			name, err := p.consume(token.IDENTIFIER, "Expect property name after '.'.")
+			if err != nil {
+				return nil, err
+			}
+
+			expr = ast.NewGet(expr, name)
 		} else {
 			break
 		}
@@ -639,6 +681,10 @@ func (p *Parser) primary() (ast.Expr, error) {
 	if p.match(token.NUMBER, token.STRING) {
 		return ast.NewLiteral(p.previous().Literal), nil
 	} 
+
+	if p.match(token.THIS) {
+		return ast.NewThis(p.previous()), nil
+	}
 
 	if p.match(token.IDENTIFIER) {
 		return ast.NewVariable(p.previous()), nil

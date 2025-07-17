@@ -236,9 +236,43 @@ func (ip *Interpreter) VisitCallExpr(expr ast.Call) (any, error) {
 	}
 
 	return callableFn.Call(ip, arguments)
-	
+
 }
 
+func (ip *Interpreter) VisitGetExpr(expr ast.Get) (any, error) {
+	object, err := ip.evaluate(expr.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	if object, ok := object.(Instance); ok {
+		return object.Get(expr.Name.Lexeme)
+	}
+
+	return nil, lox_error.NewRuntimeError(expr.Name, "Only instances have fields.")
+}
+
+func (ip *Interpreter) VisitSetExpr(expr ast.Set) (any, error) {
+	object, err := ip.evaluate(expr.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	if object, ok := object.(Instance); ok {
+		value, err := ip.evaluate(expr.Value)
+		if err != nil {
+			return nil, err
+		}
+
+		object.Set(expr.Name.Lexeme, value)
+	}
+
+	return nil, lox_error.NewRuntimeError(expr.Name, "Only instances have properties.")
+}
+
+func (ip *Interpreter) VisitThisExpr(expr ast.This) (any, error) {
+	return ip.lookUpVariable(expr.Keyword, expr)
+}
 
 func (ip *Interpreter) evaluate(expr ast.Expr) (any, error) {
 	return expr.Accept(ip)
@@ -340,7 +374,7 @@ func (ip *Interpreter) VisitWhileStmt(stmt stmt.While) error {
 }
 
 func (ip *Interpreter) VisitFunctionStmt(stmt stmt.Function) error {
-	function := NewFunction(stmt, ip.env)
+	function := NewFunction(stmt, ip.env, false)
 	ip.env.Define(stmt.Name.Lexeme, function)
 	return nil
 }
@@ -364,6 +398,22 @@ func (ip *Interpreter) VisitReturnStmt(stmt stmt.Return) error {
 	}
 
 	return lox_error.ReturnError{Value: value}
+}
+
+func (ip *Interpreter) VisitClassStmt(stmt stmt.Class) error {
+	ip.env.Define(stmt.Name.Lexeme, nil)
+
+	// Bind methods to class
+	methods := make(map[string]*Function)
+	for _, method := range stmt.Methods {
+		isInitializer := method.Name.Lexeme == "init"
+		fn := NewFunction(method, ip.env, isInitializer)
+		methods[method.Name.Lexeme] = fn
+	}
+
+	class := NewClass(stmt.Name.Lexeme, methods)
+	ip.env.Assign(stmt.Name, class)
+	return nil
 }
 
 

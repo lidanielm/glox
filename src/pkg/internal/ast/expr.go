@@ -18,6 +18,9 @@ type Visitor[R any] interface {
 	VisitAssignExpr(expr Assign) (R, error)
 	VisitLogicalExpr(expr Logical) (R, error)
 	VisitCallExpr(expr Call) (R, error)
+	VisitGetExpr(expr Get) (R, error)
+	VisitSetExpr(expr Set) (R, error)
+	VisitThisExpr(expr This) (R, error)
 }
 
 type Binary struct {
@@ -138,4 +141,43 @@ func NewCall(callee Expr, paren token.Token, arguments []Expr) *Call {
 
 func (c Call) Accept(visitor Visitor[any]) (any, error) {
 	return visitor.VisitCallExpr(c)
+}
+
+type Get struct {
+	Object Expr
+	Name token.Token
+}
+
+func NewGet(object Expr, name token.Token) *Get {
+	return &Get{Object: object, Name: name}
+}
+
+func (g Get) Accept(visitor Visitor[any]) (any, error) {
+	return visitor.VisitGetExpr(g)
+}
+
+type Set struct {
+	Object Expr
+	Name token.Token
+	Value Expr
+}
+
+func NewSet(object Expr, name token.Token, value Expr) *Set {
+	return &Set{Object: object, Name: name, Value: value}
+}
+
+func (s Set) Accept(visitor Visitor[any]) (any, error) {
+	return visitor.VisitSetExpr(s)
+}
+
+type This struct {
+	Keyword token.Token
+}
+
+func NewThis(keyword token.Token) *This {
+	return &This{Keyword: keyword}
+}
+
+func (t This) Accept(visitor Visitor[any]) (any, error) {
+	return visitor.VisitThisExpr(t)
 }

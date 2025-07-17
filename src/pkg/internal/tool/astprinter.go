@@ -65,6 +65,18 @@ func (a AstPrinter) VisitCallExpr(expr ast.Call) (any, error) {
 	return a.parenthesize("call "+expr.Paren.Lexeme, expr.Arguments...)
 }
 
+func (a AstPrinter) VisitGetExpr(expr ast.Get) (any, error) {
+	return a.parenthesize("get "+expr.Name.Lexeme, expr.Object)
+}
+
+func (a AstPrinter) VisitSetExpr(expr ast.Set) (any, error) {
+	return a.parenthesize("set "+expr.Name.Lexeme, expr.Object, expr.Value)
+}
+
+func (a AstPrinter) VisitThisExpr(expr ast.This) (any, error) {
+	return fmt.Sprintf("this.%s", expr.Keyword.Lexeme), nil
+}
+
 func (a AstPrinter) parenthesize(name string, exprs ...ast.Expr) (string, error) {
 	str := "(" + name
 	for _, expr := range exprs {

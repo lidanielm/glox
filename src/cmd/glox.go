@@ -28,9 +28,25 @@ func runFile(path string) error {
 	interpreter := interpreter.NewInterpreter()
 	data, err := os.ReadFile(path)
 	if err != nil {
+		fmt.Println("Error reading file:", err)
 		return err
 	}
-	run(string(data), interpreter)
+	err = run(string(data), interpreter)
+	if err != nil {
+		if runtimeError, ok := err.(*lox_error.RuntimeError); ok {
+			fmt.Println(runtimeError.Error())
+			os.Exit(1)
+		} else if loxError, ok := err.(*lox_error.LoxError); ok {
+			fmt.Println(loxError.Error())
+			os.Exit(1)
+		} else if parseError, ok := err.(*lox_error.ParseError); ok {
+			fmt.Println(parseError.Error())
+			os.Exit(1)
+		} else {
+			fmt.Println("Error:", err)
+			os.Exit(1)
+		}
+	}
 	return nil
 }
 
